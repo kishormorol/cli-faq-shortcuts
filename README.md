@@ -3,6 +3,8 @@
 An [Agent Skill](https://agentskills.io) that reads what you keep typing to your coding
 agent and turns it into short commands — for **Claude Code, Codex and Cursor**.
 
+![An agent reads a project's past prompts and proposes four shortcuts, each with the sentence it replaces and how often it was asked (illustrative example)](demo.svg)
+
 When a codebase gets big, every ask gets long. "Check whether the new signups got their
 welcome email, and skip the test accounts like last time" — typed again every day, with a
 typo one day, and the agent starts cold every time. This skill finds those asks in your
