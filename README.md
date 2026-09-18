@@ -17,7 +17,7 @@ It works in Claude Code, Codex and Cursor.
 
 ```bash
 git clone https://github.com/kishormorol/cli-faq-shortcuts ~/.agents/skills/faq-shortcuts
-mkdir -p ~/.claude/skills && ln -s ~/.agents/skills/faq-shortcuts ~/.claude/skills/faq-shortcuts
+mkdir -p ~/.claude/skills && ln -sfn ~/.agents/skills/faq-shortcuts ~/.claude/skills/faq-shortcuts
 ```
 
 **2. Open your project** in Claude Code, Codex or Cursor, in a new session.
@@ -119,7 +119,7 @@ one tool only, and `--since 2026-01-01` to skip older prompts.
 | The agent doesn't know `/faq-shortcuts` | Start a new session. Skills load when a session starts. Check that `ls ~/.claude/skills/faq-shortcuts/SKILL.md` finds the file. |
 | `no session history at …` | Run it from the project folder you actually worked in. History is stored per folder, so a subfolder counts as a different project. |
 | Very few prompts found | Only Claude Code and Codex history is read. Cursor chats aren't read yet. |
-| `ln: … File exists` | The skill is already linked. Run the update command instead. |
+| `fatal: destination path … already exists` | It's already installed. Run the update command instead. |
 
 ## Privacy
 
