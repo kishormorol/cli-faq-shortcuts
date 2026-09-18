@@ -58,7 +58,7 @@ The shortcuts it writes live in the project's `.claude/skills/`, linked into
 
 | Agent | History | Read? |
 |---|---|---|
-| Claude Code | `~/.claude/projects/<project>/*.jsonl` | yes |
+| Claude Code | `~/.claude/projects/<project>/*.jsonl`, and `~/.claude/history.jsonl` for sessions older than the 30 days transcripts are kept | yes |
 | Codex | `~/.codex/sessions/` (or `$CODEX_HOME`), matched by the session's working directory | yes |
 | Cursor | an undocumented SQLite store | not yet — Cursor still loads the shortcuts |
 

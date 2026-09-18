@@ -5,7 +5,11 @@ Two sources, read with --source (default: all):
 
   claude  Claude Code stores each session as JSONL under ~/.claude/projects/<slug>/,
           where <slug> is the project's absolute path with every non-alphanumeric
-          character replaced by "-".
+          character replaced by "-". Those transcripts are pruned after 30 days by
+          default, so older sessions come from ~/.claude/history.jsonl, the prompt log
+          behind the up-arrow, which keeps the typed text, project and session id. A
+          session is read from its transcript when one survives, else from that log,
+          so no prompt is counted twice.
   codex   Codex stores each session as JSONL under $CODEX_HOME/sessions/YYYY/MM/DD/
           (CODEX_HOME defaults to ~/.codex). The first line, session_meta, records
           the cwd the session ran in; that is how a session is matched to a project.
@@ -25,6 +29,7 @@ import json
 import os
 import re
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Codex session sources a person types into. "exec" is a scripted run, and a dict
@@ -54,6 +59,12 @@ def is_wrapper(text: str) -> bool:
     return text.startswith(("<", "[Request", "# AGENTS.md instructions"))
 
 
+# history.jsonl records slash commands and ! shell input as typed; transcripts wrap them in
+# tags that is_wrapper() already drops. A path such as /Users/me/cv.pdf is still an ask.
+SLASH_OR_SHELL = re.compile(r"^(/[A-Za-z0-9:_-]+(\s|$)|!)")
+PASTE_ONLY = re.compile(r"^\[Pasted text #\d+[^\]]*\]$")
+
+
 def read_jsonl(path):
     with open(path, errors="ignore") as fh:
         for line in fh:
@@ -64,17 +75,33 @@ def read_jsonl(path):
 
 
 def claude_asks(project_dir):
-    sessions = Path.home() / ".claude" / "projects" / slug(project_dir)
-    if not sessions.is_dir():
+    home = Path.home() / ".claude"
+    sessions = home / "projects" / slug(project_dir)
+    history = home / "history.jsonl"
+    if not sessions.is_dir() and not history.is_file():
         return None, sessions
-    asks = []
-    for f in sessions.glob("*.jsonl"):
+    asks, seen = [], set()
+    for f in sessions.glob("*.jsonl") if sessions.is_dir() else []:
+        seen.add(f.stem)
         for turn in read_jsonl(f):
             if turn.get("type") != "user" or turn.get("isMeta") or turn.get("isSidechain"):
                 continue
+            seen.add(turn.get("sessionId"))
             text = prompt_text(turn.get("message", {}).get("content")).strip()
             asks.append((turn.get("timestamp", "")[:10], text))
-    return asks, sessions
+    project = os.path.abspath(project_dir)
+    for entry in read_jsonl(history) if history.is_file() else []:
+        if entry.get("project") != project or entry.get("sessionId") in seen:
+            continue
+        text = (entry.get("display") or "").strip()
+        if SLASH_OR_SHELL.match(text) or PASTE_ONLY.match(text):
+            continue
+        ts = entry.get("timestamp")
+        day = datetime.fromtimestamp(ts / 1000, timezone.utc).strftime("%Y-%m-%d") if ts else ""
+        asks.append((day, text))
+    if not asks and not sessions.is_dir():
+        return None, sessions
+    return asks, f"{sessions} + {history}"
 
 
 def codex_asks(project_dir):

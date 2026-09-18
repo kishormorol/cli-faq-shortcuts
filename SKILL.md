@@ -21,8 +21,9 @@ python3 scripts/extract_asks.py <project_dir> [--source all|claude|codex] [--sin
 ```
 
 This prints every prompt typed in that project's sessions, oldest first, as
-`date<TAB>source<TAB>prompt`. It reads Claude Code (`~/.claude/projects/`) and Codex
-(`~/.codex/sessions/`, or `$CODEX_HOME`) by default, and skips subagent turns and scripted
+`date<TAB>source<TAB>prompt`. It reads Claude Code (`~/.claude/projects/`, plus
+`~/.claude/history.jsonl` for sessions older than the 30 days Claude Code keeps transcripts)
+and Codex (`~/.codex/sessions/`, or `$CODEX_HOME`) by default, and skips subagent turns and scripted
 runs such as `codex exec`, because nobody typed those. An ask repeated across both tools
 counts as one cluster. Cursor history is not read yet: it lives in an undocumented SQLite
 store.
