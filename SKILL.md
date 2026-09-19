@@ -20,7 +20,8 @@ Build from evidence, not from guesses about what might be useful.
 python3 scripts/extract_asks.py <project_dir> [--source all|claude|codex] [--since YYYY-MM-DD] > asks.tsv
 ```
 
-This prints every prompt typed in that project's sessions, oldest first, as
+On Windows, run it with `python` instead of `python3`. This prints every prompt typed in
+that project's sessions, oldest first, as
 `date<TAB>source<TAB>prompt`. It reads Claude Code (`~/.claude/projects/`, plus
 `~/.claude/history.jsonl` for sessions older than the 30 days Claude Code keeps
 transcripts) and Codex (`~/.codex/sessions/`, or `$CODEX_HOME`) by default, and skips

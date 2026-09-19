@@ -14,7 +14,7 @@ It works in Claude Code, Codex and Cursor.
 
 ## Quick start
 
-**1. Install** (macOS / Linux, needs `git` and Python 3.9+):
+**1. Install** (macOS / Linux, needs `git` and Python 3.9+; on Windows see [Windows](#windows)):
 
 ```bash
 git clone https://github.com/kishormorol/cli-faq-shortcuts ~/.agents/skills/faq-shortcuts
@@ -115,8 +115,31 @@ The quick start above is the whole install. It puts the skill where each agent l
 
 **Uninstall:** `rm ~/.claude/skills/faq-shortcuts && rm -rf ~/.agents/skills/faq-shortcuts`
 
-**Windows:** run the commands in WSL, or copy the folder into both locations instead of
-linking it.
+### Windows
+
+In PowerShell, with `git` and Python 3.9+ installed. A directory junction links the skill
+into `~/.claude/skills` and, unlike a symlink, needs no admin rights or Developer Mode:
+
+```powershell
+git clone https://github.com/kishormorol/cli-faq-shortcuts "$env:USERPROFILE\.agents\skills\faq-shortcuts"
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.claude\skills" | Out-Null
+New-Item -ItemType Junction -Path "$env:USERPROFILE\.claude\skills\faq-shortcuts" -Target "$env:USERPROFILE\.agents\skills\faq-shortcuts"
+```
+
+Run the extractor with `python` (or `py`), not `python3`:
+
+```powershell
+python "$env:USERPROFILE\.agents\skills\faq-shortcuts\scripts\extract_asks.py" . | Select-Object -First 10
+```
+
+**Update:** `git -C "$env:USERPROFILE\.agents\skills\faq-shortcuts" pull`
+
+**Uninstall:** remove the junction with `rmdir`, which leaves its target alone, then the clone:
+
+```powershell
+cmd /c rmdir "$env:USERPROFILE\.claude\skills\faq-shortcuts"
+Remove-Item -Recurse -Force "$env:USERPROFILE\.agents\skills\faq-shortcuts"
+```
 
 ## What it reads
 
