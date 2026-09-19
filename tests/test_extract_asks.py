@@ -17,8 +17,9 @@ sys.path.insert(0, str(SCRIPT.parent))
 from extract_asks import slug  # noqa: E402
 
 WINDOWS = sys.platform == "win32"
-# Non-ASCII on purpose: the Windows default code page (cp1252) can't decode or print it.
-ASK = "déploie le café ✓ 日本語"
+# Read or printed as cp1252 (the Windows default), "à" turns into a no-break space that the
+# whitespace cleanup splits on, and the 0x9D byte in "Н" is dropped.
+ASK = "voilà, Нет ✓ 日本語"
 
 
 def write_jsonl(path, rows):
