@@ -156,6 +156,8 @@ Everyone whose pull request is merged appears here:
 
 [![Contributors](https://contrib.rocks/image?repo=kishormorol/cli-faq-shortcuts)](https://github.com/kishormorol/cli-faq-shortcuts/graphs/contributors)
 
+Built with help from [Claude Code](https://claude.com/claude-code).
+
 ## Privacy
 
 The extractor only reads local files and makes no network calls. Your prompts can contain
