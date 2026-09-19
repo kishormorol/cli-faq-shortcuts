@@ -3,6 +3,7 @@
 [![License](https://img.shields.io/github/license/kishormorol/cli-faq-shortcuts?style=flat)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/kishormorol/cli-faq-shortcuts?style=flat)](https://github.com/kishormorol/cli-faq-shortcuts/releases)
 [![Works with](https://img.shields.io/badge/works%20with-Claude%20Code%20·%20Codex%20·%20Cursor-7c3aed?style=flat)](#install)
+[![Stars](https://img.shields.io/github/stars/kishormorol/cli-faq-shortcuts?style=flat)](https://github.com/kishormorol/cli-faq-shortcuts/stargazers)
 
 **Stop typing the same long request to your coding agent every day.** This
 [Agent Skill](https://agentskills.io) reads your own history, finds the asks you keep
@@ -28,6 +29,8 @@ You'll get a table of your most repeated asks with how often you typed each. Pic
 ones you want and they become shortcuts in that project.
 
 > The repo is `cli-faq-shortcuts`; the skill it installs is called **`faq-shortcuts`**.
+
+**If it saves you typing, please ⭐ star the repo.** Stars are how other people find it.
 
 ## Commands
 
