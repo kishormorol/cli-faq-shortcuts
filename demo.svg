@@ -1,31 +1,35 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="880" height="330" viewBox="0 0 880 330" role="img" aria-label="An agent reads 1,146 past prompts and proposes four shortcuts: /signups, /sent, /project and /import, each with the sentence it replaces and how often it was asked.">
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="536" viewBox="0 0 880 536" role="img" aria-label="Animated sample session: /faq-shortcuts reads 248 Claude Code and 63 Codex prompts from a sample project, lists the four most repeated asks with how often each was typed, and writes the three picked as shortcuts.">
   <style>
     text { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 14px; fill: #c9d1d9; white-space: pre; }
-    .dim { fill: #8b949e; }
-    .you { fill: #e6edf3; font-weight: 600; }
-    .cmd { fill: #7ee787; font-weight: 600; }
-    .hdr { fill: #8b949e; }
-    .num { fill: #79c0ff; }
-    .ok  { fill: #d2a8ff; }
+    .dim { fill: #8b949e; } .you { fill: #e6edf3; font-weight: 600; } .cmd { fill: #7ee787; font-weight: 600; }
+    .hdr { fill: #8b949e; } .num { fill: #79c0ff; } .ok { fill: #7ee787; } .tool { fill: #d2a8ff; } .txt { fill: #c9d1d9; }
   </style>
-  <rect width="880" height="330" rx="10" fill="#0d1117"/>
-  <rect width="880" height="34" rx="10" fill="#161b22"/>
-  <rect y="24" width="880" height="10" fill="#161b22"/>
-  <circle cx="20" cy="17" r="6" fill="#ff5f57"/>
-  <circle cx="40" cy="17" r="6" fill="#febc2e"/>
-  <circle cx="60" cy="17" r="6" fill="#28c840"/>
-  <text x="440" y="22" text-anchor="middle" class="dim" style="font-size:12px">~/my-app</text>
+  <rect width="880" height="536" rx="10" fill="#0d1117"/>
+  <rect width="880" height="34" rx="10" fill="#161b22"/><rect y="24" width="880" height="10" fill="#161b22"/>
+  <circle cx="20" cy="17" r="6" fill="#ff5f57"/><circle cx="40" cy="17" r="6" fill="#febc2e"/><circle cx="60" cy="17" r="6" fill="#28c840"/>
+  <text x="440.0" y="22" text-anchor="middle" class="dim" style="font-size:12px">~/my-app — claude</text>
+  <text x="864" y="524" text-anchor="end" class="dim" style="font-size:11px">sample project · extractor counts are real output</text>
 
-  <text x="24" y="68" class="dim">&gt; <tspan class="you">what do I keep asking in this project?</tspan></text>
-
-  <text x="24" y="100" class="dim">Read 1,146 prompts over 41 days (Claude Code 912 · Codex 234)</text>
-
-  <text x="24" y="136" class="hdr">SHORTCUT          REPLACES                                              ASKED</text>
-  <text x="24" y="164"><tspan class="cmd">/signups</tspan>          "how many signed up this week, minus test accounts?"  <tspan class="num">   63</tspan></text>
-  <text x="24" y="190"><tspan class="cmd">/sent</tspan>             "did the newsletter go out? did it reach everyone?"   <tspan class="num">   41</tspan></text>
-  <text x="24" y="216"><tspan class="cmd">/project</tspan> &lt;name&gt;   "any update on the billing migration? what's blocked?" <tspan class="num">  28</tspan></text>
-  <text x="24" y="242"><tspan class="cmd">/import</tspan> &lt;csv&gt;     "add these new customers, skip the ones we have"      <tspan class="num">   19</tspan></text>
-
-  <text x="24" y="282" class="dim">Which should I write? Write and send shortcuts dry-run first and wait for yes.</text>
-  <text x="24" y="306" class="ok">Loads in Claude Code · Codex · Cursor</text>
+  <clipPath id="c0"><rect x="24" y="50" height="22" width="146.9">
+    <animate attributeName="width" values="0;16.9;25.3;33.7;42.1;50.6;59.0;67.4;75.9;84.3;92.7;101.2;109.6;118.0;126.4;134.9" keyTimes="0;0.0333;0.0383;0.0433;0.0483;0.0533;0.0583;0.0633;0.0683;0.0733;0.0783;0.0833;0.0883;0.0933;0.0983;0.1033" calcMode="discrete" dur="18.0s" repeatCount="indefinite"/>
+  </rect></clipPath>
+  <text x="24" y="66" clip-path="url(#c0)"><tspan class="dim">&gt; </tspan><tspan class="you">/faq-shortcuts</tspan></text>
+  <text x="24" y="102"><tspan class="tool">⏺ </tspan><tspan class="txt">Reading your history for ~/my-app</tspan><animate attributeName="opacity" values="0;1" keyTimes="0;0.1444" calcMode="discrete" dur="18.0s" repeatCount="indefinite"/></text>
+  <text x="24" y="126"><tspan class="dim">  ⎿ </tspan><tspan class="num">248</tspan><tspan class="dim"> prompts from claude</tspan><animate attributeName="opacity" values="0;1" keyTimes="0;0.1722" calcMode="discrete" dur="18.0s" repeatCount="indefinite"/></text>
+  <text x="24" y="150"><tspan class="dim">  ⎿ </tspan><tspan class="num">63</tspan><tspan class="dim"> prompts from codex</tspan><animate attributeName="opacity" values="0;1" keyTimes="0;0.1944" calcMode="discrete" dur="18.0s" repeatCount="indefinite"/></text>
+  <text x="24" y="186"><tspan class="tool">⏺ </tspan><tspan class="txt">Grouped 311 prompts by intent. Asked most often:</tspan><animate attributeName="opacity" values="0;1" keyTimes="0;0.2389" calcMode="discrete" dur="18.0s" repeatCount="indefinite"/></text>
+  <text x="24" y="218"><tspan class="hdr">   SHORTCUT          REPLACES                                  ASKED</tspan><animate attributeName="opacity" values="0;1" keyTimes="0;0.2889" calcMode="discrete" dur="18.0s" repeatCount="indefinite"/></text>
+  <text x="24" y="242"><tspan class="dim">1  </tspan><tspan class="cmd">/signups          </tspan><tspan class="txt">&quot;how many signed up this week?&quot;           </tspan><tspan class="num">   63</tspan><animate attributeName="opacity" values="0;1" keyTimes="0;0.3222" calcMode="discrete" dur="18.0s" repeatCount="indefinite"/></text>
+  <text x="24" y="266"><tspan class="dim">2  </tspan><tspan class="cmd">/sent             </tspan><tspan class="txt">&quot;did the newsletter go out?&quot;              </tspan><tspan class="num">   41</tspan><animate attributeName="opacity" values="0;1" keyTimes="0;0.3528" calcMode="discrete" dur="18.0s" repeatCount="indefinite"/></text>
+  <text x="24" y="290"><tspan class="dim">3  </tspan><tspan class="cmd">/project billing  </tspan><tspan class="txt">&quot;any update on the billing migration?&quot;    </tspan><tspan class="num">   28</tspan><animate attributeName="opacity" values="0;1" keyTimes="0;0.3833" calcMode="discrete" dur="18.0s" repeatCount="indefinite"/></text>
+  <text x="24" y="314"><tspan class="dim">4  </tspan><tspan class="cmd">/import &lt;csv&gt;     </tspan><tspan class="txt">&quot;load these customers from the sheet&quot;     </tspan><tspan class="num">   19</tspan><animate attributeName="opacity" values="0;1" keyTimes="0;0.4139" calcMode="discrete" dur="18.0s" repeatCount="indefinite"/></text>
+  <text x="24" y="350"><tspan class="tool">⏺ </tspan><tspan class="txt">Which should I write? Writes and sends always dry-run first.</tspan><animate attributeName="opacity" values="0;1" keyTimes="0;0.4667" calcMode="discrete" dur="18.0s" repeatCount="indefinite"/></text>
+  <clipPath id="c11"><rect x="24" y="358" height="22" width="87.9">
+    <animate attributeName="width" values="0;16.9;25.3;33.7;42.1;50.6;59.0;67.4;75.9" keyTimes="0;0.5000;0.5050;0.5100;0.5150;0.5200;0.5250;0.5300;0.5350" calcMode="discrete" dur="18.0s" repeatCount="indefinite"/>
+  </rect></clipPath>
+  <text x="24" y="374" clip-path="url(#c11)"><tspan class="dim">&gt; </tspan><tspan class="you">1, 2, 4</tspan></text>
+  <text x="24" y="410"><tspan class="ok">  ✓ </tspan><tspan class="txt">.claude/skills/signups/SKILL.md</tspan><animate attributeName="opacity" values="0;1" keyTimes="0;0.5778" calcMode="discrete" dur="18.0s" repeatCount="indefinite"/></text>
+  <text x="24" y="434"><tspan class="ok">  ✓ </tspan><tspan class="txt">.claude/skills/sent/SKILL.md</tspan><animate attributeName="opacity" values="0;1" keyTimes="0;0.6000" calcMode="discrete" dur="18.0s" repeatCount="indefinite"/></text>
+  <text x="24" y="458"><tspan class="ok">  ✓ </tspan><tspan class="txt">.claude/skills/import/SKILL.md</tspan><animate attributeName="opacity" values="0;1" keyTimes="0;0.6222" calcMode="discrete" dur="18.0s" repeatCount="indefinite"/></text>
+  <text x="24" y="482"><tspan class="dim">    linked into .agents/skills/, so they load in Claude Code, Codex and Cursor</tspan><animate attributeName="opacity" values="0;1" keyTimes="0;0.6556" calcMode="discrete" dur="18.0s" repeatCount="indefinite"/></text>
 </svg>

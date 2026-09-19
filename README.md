@@ -10,7 +10,7 @@
 repeating, and turns each one into a short command, like `/sent` or `/project billing`.
 It works in Claude Code, Codex and Cursor.
 
-![An agent reads a project's past prompts and proposes four shortcuts, each with the sentence it replaces and how often it was asked (illustrative example)](demo.svg)
+![Animated sample session: /faq-shortcuts reads 248 Claude Code and 63 Codex prompts from a sample project, lists the four most repeated asks with how often each was typed, and writes the three picked as shortcuts](demo.svg)
 
 ## Quick start
 
