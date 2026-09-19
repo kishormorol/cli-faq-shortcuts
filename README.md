@@ -148,8 +148,8 @@ one tool only, and `--since 2026-01-01` to skip older prompts.
 
 Issues and pull requests are welcome. Good first contributions:
 
-- **Windows support** without WSL: the install relies on symlinks.
-- **Reading Cursor history**, so Cursor users' asks are counted too.
+- **[Windows support](https://github.com/kishormorol/cli-faq-shortcuts/issues/1)** without WSL: the install relies on symlinks.
+- **[Reading Cursor history](https://github.com/kishormorol/cli-faq-shortcuts/issues/2)**, so Cursor users' asks are counted too.
 - **A bug report** with the extractor command you ran and what it printed.
 
 Everyone whose pull request is merged appears here:
