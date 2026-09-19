@@ -5,11 +5,12 @@ Two sources, read with --source (default: all):
 
   claude  Claude Code stores each session as JSONL under ~/.claude/projects/<slug>/,
           where <slug> is the project's absolute path with every non-alphanumeric
-          character replaced by "-". Those transcripts are pruned after 30 days by
-          default, so older sessions come from ~/.claude/history.jsonl, the prompt log
-          behind the up-arrow, which keeps the typed text, project and session id. A
-          session is read from its transcript when one survives, else from that log,
-          so no prompt is counted twice.
+          character replaced by "-" (C:\\Users\\me\\proj becomes C--Users-me-proj).
+          Those transcripts are pruned after 30 days by default, so older sessions
+          come from ~/.claude/history.jsonl, the prompt log behind the up-arrow, which
+          keeps the typed text, project and session id. A session is read from its
+          transcript when one survives, else from that log, so no prompt is counted
+          twice.
   codex   Codex stores each session as JSONL under $CODEX_HOME/sessions/YYYY/MM/DD/
           (CODEX_HOME defaults to ~/.codex). The first line, session_meta, records
           the cwd the session ran in; that is how a session is matched to a project.
@@ -43,6 +44,14 @@ def slug(path: str) -> str:
     return re.sub(r"[^A-Za-z0-9]", "-", os.path.abspath(path))
 
 
+def norm_path(path: str) -> str:
+    """Fold the ways a tool may record the same folder into one string. On Windows that
+    means drive-letter case, / vs \\, and the \\\\?\\ prefix a canonicalized path carries."""
+    if path.startswith("\\\\?\\"):
+        path = path[4:]
+    return os.path.normcase(os.path.abspath(path))
+
+
 def prompt_text(content):
     if isinstance(content, str):
         return content
@@ -66,7 +75,7 @@ PASTE_ONLY = re.compile(r"^\[Pasted text #\d+[^\]]*\]$")
 
 
 def read_jsonl(path):
-    with open(path, errors="ignore") as fh:
+    with open(path, encoding="utf-8", errors="ignore") as fh:
         for line in fh:
             try:
                 yield json.loads(line)
@@ -89,9 +98,10 @@ def claude_asks(project_dir):
             seen.add(turn.get("sessionId"))
             text = prompt_text(turn.get("message", {}).get("content")).strip()
             asks.append((turn.get("timestamp", "")[:10], text))
-    project = os.path.abspath(project_dir)
+    project = norm_path(project_dir)
     for entry in read_jsonl(history) if history.is_file() else []:
-        if entry.get("project") != project or entry.get("sessionId") in seen:
+        where = entry.get("project")
+        if not where or norm_path(where) != project or entry.get("sessionId") in seen:
             continue
         text = (entry.get("display") or "").strip()
         if SLASH_OR_SHELL.match(text) or PASTE_ONLY.match(text):
@@ -108,7 +118,7 @@ def codex_asks(project_dir):
     root = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")) / "sessions"
     if not root.is_dir():
         return None, root
-    project = os.path.abspath(project_dir)
+    project = norm_path(project_dir)
     asks, matched = [], 0
     for f in root.rglob("*.jsonl"):
         turns = read_jsonl(f)
@@ -118,7 +128,7 @@ def codex_asks(project_dir):
         if (
             meta.get("type") != "session_meta"
             or not info.get("cwd")
-            or os.path.abspath(info["cwd"]) != project
+            or norm_path(info["cwd"]) != project
             or not isinstance(source, str)
             or source not in CODEX_INTERACTIVE
             or info.get("originator") in CODEX_AGENT_ORIGINATORS
@@ -146,6 +156,10 @@ def main():
     ap.add_argument("--since", default="")
     ap.add_argument("--max-len", type=int, default=400)
     args = ap.parse_args()
+    if sys.platform == "win32":
+        # A pipe on Windows defaults to the ANSI code page, which can't print most prompts.
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
 
     names = list(SOURCES) if args.source == "all" else [args.source]
     rows, missing = [], []
