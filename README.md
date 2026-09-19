@@ -29,6 +29,26 @@ ones you want and they become shortcuts in that project.
 
 > The repo is `cli-faq-shortcuts`; the skill it installs is called **`faq-shortcuts`**.
 
+## Commands
+
+```bash
+# inside your project, in Claude Code
+/faq-shortcuts                        # find your repeated asks and propose shortcuts
+/faq-shortcuts --since 2026-06-01     # only look at recent history
+/faq-shortcuts --source codex         # only what you asked Codex
+
+# the extractor on its own: no agent, nothing leaves your machine
+E=~/.agents/skills/faq-shortcuts/scripts/extract_asks.py
+python3 $E .                          # every prompt you typed here, oldest first
+python3 $E . --since 2026-09-01 | wc -l                  # how many since September
+python3 $E . | awk -F'\t' 'split($3,w," ")>=4 {print tolower($3)}' \
+  | sort | uniq -c | sort -rn | head                     # your most repeated exact requests
+```
+
+The last one counts exact repeats only, and it undercounts. On one real project, the most
+repeated exact request appeared 4 times. Grouped by intent, however it was worded, the top
+ask had been typed **127 times**. That grouping is the agent's job in `/faq-shortcuts`.
+
 ## What you get
 
 | You kept typing | You type now |
