@@ -144,6 +144,18 @@ one tool only, and `--since 2026-01-01` to skip older prompts.
 | Very few prompts found | Only Claude Code and Codex history is read. Cursor chats aren't read yet. |
 | `fatal: destination path … already exists` | It's already installed. Run the update command instead. |
 
+## Contributing
+
+Issues and pull requests are welcome. Good first contributions:
+
+- **Windows support** without WSL: the install relies on symlinks.
+- **Reading Cursor history**, so Cursor users' asks are counted too.
+- **A bug report** with the extractor command you ran and what it printed.
+
+Everyone whose pull request is merged appears here:
+
+[![Contributors](https://contrib.rocks/image?repo=kishormorol/cli-faq-shortcuts)](https://github.com/kishormorol/cli-faq-shortcuts/graphs/contributors)
+
 ## Privacy
 
 The extractor only reads local files and makes no network calls. Your prompts can contain
