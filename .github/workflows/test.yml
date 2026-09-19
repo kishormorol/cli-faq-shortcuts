@@ -1,0 +1,45 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  extractor:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.9", "3.13"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m unittest discover tests -v
+
+  # The README's Windows install and uninstall, run as written (cloned from this checkout).
+  windows-install:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        run: |
+          git clone $env:GITHUB_WORKSPACE "$env:USERPROFILE\.agents\skills\faq-shortcuts"
+          New-Item -ItemType Directory -Force "$env:USERPROFILE\.claude\skills" | Out-Null
+          New-Item -ItemType Junction -Path "$env:USERPROFILE\.claude\skills\faq-shortcuts" -Target "$env:USERPROFILE\.agents\skills\faq-shortcuts"
+          if (-not (Test-Path "$env:USERPROFILE\.claude\skills\faq-shortcuts\SKILL.md")) { throw "SKILL.md not reachable through the junction" }
+      - name: Run the extractor through the junction
+        run: |
+          python "$env:USERPROFILE\.claude\skills\faq-shortcuts\scripts\extract_asks.py" . --help
+      - name: Uninstall
+        run: |
+          cmd /c rmdir "$env:USERPROFILE\.claude\skills\faq-shortcuts"
+          if (Test-Path "$env:USERPROFILE\.claude\skills\faq-shortcuts") { throw "junction still there" }
+          if (-not (Test-Path "$env:USERPROFILE\.agents\skills\faq-shortcuts\SKILL.md")) { throw "rmdir removed the clone's files" }
+          Remove-Item -Recurse -Force "$env:USERPROFILE\.agents\skills\faq-shortcuts"
