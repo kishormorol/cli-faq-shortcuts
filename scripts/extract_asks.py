@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Print the prompts a user typed in past agent sessions for one project.
 
-Two sources, read with --source (default: all):
+Three sources, read with --source (default: all):
 
   claude  Claude Code stores each session as JSONL under ~/.claude/projects/<slug>/,
           where <slug> is the project's absolute path with every non-alphanumeric
@@ -14,6 +14,10 @@ Two sources, read with --source (default: all):
   codex   Codex stores each session as JSONL under $CODEX_HOME/sessions/YYYY/MM/DD/
           (CODEX_HOME defaults to ~/.codex). The first line, session_meta, records
           the cwd the session ran in; that is how a session is matched to a project.
+  cursor  Cursor stores chat history in SQLite under
+          ~/Library/Application Support/Cursor/User/globalStorage/state.vscdb
+          in table cursorDiskKV. Each composer session's workspace is matched
+          against the project directory, and user bubbles (type: 1) are extracted.
 
 Prints one typed prompt per line, oldest first, as "YYYY-MM-DD<TAB>source<TAB>prompt".
 
@@ -23,12 +27,13 @@ prompts the agent wrote, not the user), meta turns, injected context and system
 wrappers, and anything longer than --max-len (pasted documents, not asks).
 
 Usage:
-  extract_asks.py [project_dir] [--source all|claude|codex] [--since YYYY-MM-DD] [--max-len 400]
+  extract_asks.py [project_dir] [--source all|claude|codex|cursor] [--since YYYY-MM-DD] [--max-len 400]
 """
 import argparse
 import json
 import os
 import re
+import sqlite3
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -146,7 +151,86 @@ def codex_asks(project_dir):
     return asks, root
 
 
-SOURCES = {"claude": claude_asks, "codex": codex_asks}
+def cursor_asks(project_dir):
+    if sys.platform == "darwin":
+        db = Path.home() / "Library/Application Support/Cursor/User/globalStorage/state.vscdb"
+    elif sys.platform == "win32":
+        appdata = os.environ.get("APPDATA")
+        db = Path(appdata) / "Cursor/User/globalStorage/state.vscdb" if appdata else Path.home() / "AppData/Roaming/Cursor/User/globalStorage/state.vscdb"
+    else:
+        db = Path.home() / ".config/Cursor/User/globalStorage/state.vscdb"
+
+    if not db.is_file():
+        return None, db
+
+    project = norm_path(project_dir)
+
+    try:
+        conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+        cursor = conn.cursor()
+    except sqlite3.Error as e:
+        print(f"[cursor] Unable to open database at {db}: {e}", file=sys.stderr)
+        return None, db
+
+    try:
+        cursor.execute("SELECT key, value FROM cursorDiskKV WHERE key LIKE 'composerData:%'")
+        matched_composers = set()
+        for _, val in cursor.fetchall():
+            try:
+                data = json.loads(val)
+            except (json.JSONDecodeError, TypeError):
+                continue
+
+            composer_id = data.get("composerId")
+            if not composer_id:
+                continue
+
+            ws_uri = data.get("workspaceIdentifier", {}).get("uri", {})
+            fs_path = ws_uri.get("fsPath") or ws_uri.get("path")
+            if fs_path and norm_path(fs_path) == project:
+                matched_composers.add(composer_id)
+                continue
+
+            repos = data.get("trackedGitRepos") or []
+            if any(isinstance(r, dict) and r.get("repoPath") and norm_path(r["repoPath"]) == project for r in repos):
+                matched_composers.add(composer_id)
+
+        if not matched_composers:
+            return None, f"{db} (no Cursor composer session ran in {project})"
+
+        asks = []
+        for composer_id in matched_composers:
+            cursor.execute(
+                "SELECT value FROM cursorDiskKV WHERE key LIKE ?",
+                (f"bubbleId:{composer_id}:%",),
+            )
+            for (val,) in cursor.fetchall():
+                try:
+                    bubble = json.loads(val)
+                except (json.JSONDecodeError, TypeError):
+                    continue
+
+                if bubble.get("type") != 1:
+                    continue
+
+                text = bubble.get("text", "").strip()
+                if not text:
+                    continue
+
+                created_at = bubble.get("createdAt") or ""
+                day = str(created_at)[:10] if created_at else ""
+                asks.append((day, text))
+
+        return asks, db
+
+    except sqlite3.OperationalError as e:
+        print(f"[cursor] Unexpected schema or table layout: {e}", file=sys.stderr)
+        return None, f"{db} (layout error: {e})"
+    finally:
+        conn.close()
+
+
+SOURCES = {"claude": claude_asks, "codex": codex_asks, "cursor": cursor_asks}
 
 
 def main():
