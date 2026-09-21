@@ -5,6 +5,7 @@ encodings are exercised: python -m unittest discover tests
 """
 import json
 import os
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -105,6 +106,97 @@ class ExtractAsks(unittest.TestCase):
             ],
         )
         self.assertEqual(self.run_script("--source", "codex"), [["2026-09-02", "codex", ASK]])
+
+    def test_cursor_history(self):
+        if sys.platform == "darwin":
+            db = (
+                self.home
+                / "Library"
+                / "Application Support"
+                / "Cursor"
+                / "User"
+                / "globalStorage"
+                / "state.vscdb"
+            )
+        elif WINDOWS:
+            db = (
+                self.home
+                / "AppData"
+                / "Roaming"
+                / "Cursor"
+                / "User"
+                / "globalStorage"
+                / "state.vscdb"
+            )
+        else:
+            db = (
+                self.home
+                / ".config"
+                / "Cursor"
+                / "User"
+                / "globalStorage"
+                / "state.vscdb"
+            )
+
+        db.parent.mkdir(parents=True, exist_ok=True)
+
+        conn = sqlite3.connect(db)
+
+        conn.execute(
+            "CREATE TABLE cursorDiskKV (key TEXT PRIMARY KEY, value TEXT)"
+        )
+
+        composer_id = "composer-1"
+
+        conn.execute(
+            "INSERT INTO cursorDiskKV(key, value) VALUES (?, ?)",
+            (
+                f"composerData:{composer_id}",
+                json.dumps(
+                    {
+                        "workspaceIdentifier": {
+                            "uri": {"fsPath": self.project}
+                        }
+                    }
+                ),
+            ),
+        )
+
+        conn.execute(
+            "INSERT INTO cursorDiskKV(key, value) VALUES (?, ?)",
+            (
+                f"bubbleId:{composer_id}:user-1",
+                json.dumps(
+                    {
+                        "type": 1,
+                        "createdAt": "2026-09-03T10:00:00.000Z",
+                        "text": ASK,
+                    }
+                ),
+            ),
+        )
+
+        conn.execute(
+            "INSERT INTO cursorDiskKV(key, value) VALUES (?, ?)",
+            (
+                f"bubbleId:{composer_id}:assistant-1",
+                json.dumps(
+                    {
+                        "type": 2,
+                        "createdAt": "2026-09-03T10:01:00.000Z",
+                        "text": "assistant response",
+                    }
+                ),
+            ),
+        )
+
+        conn.commit()
+        conn.close()
+
+        self.assertEqual(
+            self.run_script("--source", "cursor"),
+            [["2026-09-03", "cursor", ASK]],
+        )
 
     @unittest.skipUnless(WINDOWS, "Windows path layout")
     def test_windows_slug(self):

@@ -29,6 +29,7 @@ import argparse
 import json
 import os
 import re
+import sqlite3
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -146,7 +147,110 @@ def codex_asks(project_dir):
     return asks, root
 
 
-SOURCES = {"claude": claude_asks, "codex": codex_asks}
+def cursor_db_path():
+    if sys.platform == "darwin":
+        return (
+            Path.home()
+            / "Library"
+            / "Application Support"
+            / "Cursor"
+            / "User"
+            / "globalStorage"
+            / "state.vscdb"
+        )
+    if sys.platform == "win32":
+        appdata = os.environ.get("APPDATA")
+        if appdata:
+            return Path(appdata) / "Cursor" / "User" / "globalStorage" / "state.vscdb"
+        return (
+            Path.home()
+            / "AppData"
+            / "Roaming"
+            / "Cursor"
+            / "User"
+            / "globalStorage"
+            / "state.vscdb"
+        )
+    config = os.environ.get("XDG_CONFIG_HOME")
+    base = Path(config) if config else Path.home() / ".config"
+    return base / "Cursor" / "User" / "globalStorage" / "state.vscdb"
+
+
+def cursor_asks(project_dir):
+    db = cursor_db_path()
+    if not db.is_file():
+        return None, db
+
+    project = norm_path(project_dir)
+
+    try:
+        conn = sqlite3.connect(f"file:{db.as_posix()}?mode=ro", uri=True)
+    except sqlite3.Error:
+        return None, db
+
+    composers = set()
+
+    try:
+        rows = conn.execute(
+            "SELECT key, value FROM cursorDiskKV WHERE key LIKE 'composerData:%'"
+        )
+
+        for key, value in rows:
+            try:
+                data = json.loads(value)
+            except (TypeError, json.JSONDecodeError):
+                continue
+
+            workspace = (
+                data.get("workspaceIdentifier", {})
+                .get("uri", {})
+                .get("fsPath")
+            )
+
+            if workspace and norm_path(workspace) == project:
+                composers.add(key.split(":", 1)[1])
+
+        if not composers:
+            return None, f"{db} (no conversation ran in {project_dir})"
+
+        asks = []
+
+        for composer_id in composers:
+            prefix = f"bubbleId:{composer_id}:"
+
+            bubble_rows = conn.execute(
+                "SELECT key, value FROM cursorDiskKV WHERE key LIKE ?",
+                (prefix + "%",),
+            )
+
+            for _, value in bubble_rows:
+                try:
+                    bubble = json.loads(value)
+                except (TypeError, json.JSONDecodeError):
+                    continue
+
+                if bubble.get("type") != 1:
+                    continue
+
+                text = (bubble.get("text") or "").strip()
+
+                if not text:
+                    continue
+
+                created_at = bubble.get("createdAt") or ""
+                asks.append((created_at[:10], text))
+
+    except sqlite3.Error:
+        return None, db
+
+    finally:
+        conn.close()
+
+    return asks, db
+
+
+SOURCES = {"claude": claude_asks, "codex": codex_asks, "cursor": cursor_asks}
+
 
 
 def main():
