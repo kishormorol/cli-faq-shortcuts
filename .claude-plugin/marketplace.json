@@ -1,0 +1,15 @@
+{
+  "name": "cli-faq-shortcuts",
+  "description": "The faq-shortcuts skill as a Claude Code plugin.",
+  "owner": {
+    "name": "Md. Kishor Morol",
+    "url": "https://github.com/kishormorol"
+  },
+  "plugins": [
+    {
+      "name": "faq-shortcuts",
+      "source": "./",
+      "description": "Turns the asks you keep typing into short slash commands, mined from your own Claude Code and Codex history."
+    }
+  ]
+}

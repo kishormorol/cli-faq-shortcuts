@@ -1,0 +1,12 @@
+{
+  "name": "faq-shortcuts",
+  "description": "Turns the asks you keep typing into short slash commands, mined from your own Claude Code and Codex history.",
+  "author": {
+    "name": "Md. Kishor Morol",
+    "url": "https://github.com/kishormorol"
+  },
+  "homepage": "https://github.com/kishormorol/cli-faq-shortcuts",
+  "repository": "https://github.com/kishormorol/cli-faq-shortcuts",
+  "license": "Apache-2.0",
+  "keywords": ["skills", "shortcuts", "slash-commands", "productivity"]
+}
