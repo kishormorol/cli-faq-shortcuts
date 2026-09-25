@@ -160,7 +160,7 @@ Remove-Item -Recurse -Force "$env:USERPROFILE\.agents\skills\faq-shortcuts"
 |---|---|---|
 | Claude Code | `~/.claude/projects/<project>/*.jsonl` (the last 30 days) and `~/.claude/history.jsonl` (older prompts) | yes |
 | Codex | `~/.codex/sessions/` (or `$CODEX_HOME`), matched by the folder each session ran in | yes |
-| Cursor | `~/Library/Application Support/Cursor/User/globalStorage/state.vscdb` on macOS; platform-specific Cursor global storage on Windows/Linux | yes |
+| Cursor | `Cursor/User/globalStorage/state.vscdb` under `~/Library/Application Support` (macOS), `%APPDATA%` (Windows) or `~/.config` (Linux), matched by the folder each chat ran in | yes, except chats opened without a folder |
 
 To see what it finds without the agent:
 
@@ -177,7 +177,7 @@ to read one tool only, and `--since 2026-01-01` to skip older prompts.
 |---|---|
 | The agent doesn't know `/faq-shortcuts` | Start a new session. Skills load when a session starts. Check that `ls ~/.claude/skills/faq-shortcuts/SKILL.md` finds the file. |
 | `no session history at …` | Run it from the project folder you actually worked in. History is stored per folder, so a subfolder counts as a different project. |
-| Very few prompts found | History is read only for the project folder you actually worked in. Cursor conversations are matched by their workspace path. |
+| Very few prompts found | History is read only for the project folder you actually worked in. Cursor chats opened without a folder aren't tied to any project, so they're skipped. |
 | `fatal: destination path … already exists` | It's already installed. Run the update command instead. |
 
 ## Contributing

@@ -1,7 +1,7 @@
 ---
 name: faq-shortcuts
-description: Turn the questions and instructions a user keeps typing into a project into short slash-command skills, mined from their real Claude Code and Codex session history and git log. The shortcuts load in Claude Code, Codex and Cursor. Use when the user says they ask the same things every day, wants an FAQ or shortcuts or abbreviations for a project, wants to "stop writing the whole command", or asks what they repeat most.
-argument-hint: "[project dir, default cwd] [--source all|claude|codex] [--since YYYY-MM-DD]"
+description: Turn the questions and instructions a user keeps typing into a project into short slash-command skills, mined from their real Claude Code, Codex and Cursor session history and git log. The shortcuts load in Claude Code, Codex and Cursor. Use when the user says they ask the same things every day, wants an FAQ or shortcuts or abbreviations for a project, wants to "stop writing the whole command", or asks what they repeat most.
+argument-hint: "[project dir, default cwd] [--source all|claude|codex|cursor] [--since YYYY-MM-DD]"
 ---
 
 # FAQ shortcuts from your own history
@@ -17,17 +17,17 @@ Build from evidence, not from guesses about what might be useful.
 ## 1. Collect the asks
 
 ```bash
-python3 scripts/extract_asks.py <project_dir> [--source all|claude|codex] [--since YYYY-MM-DD] > asks.tsv
+python3 scripts/extract_asks.py <project_dir> [--source all|claude|codex|cursor] [--since YYYY-MM-DD] > asks.tsv
 ```
 
 On Windows, run it with `python` instead of `python3`. This prints every prompt typed in
 that project's sessions, oldest first, as
 `date<TAB>source<TAB>prompt`. It reads Claude Code (`~/.claude/projects/`, plus
 `~/.claude/history.jsonl` for sessions older than the 30 days Claude Code keeps
-transcripts) and Codex (`~/.codex/sessions/`, or `$CODEX_HOME`) by default, and skips
-subagent turns and scripted runs such as `codex exec`, because nobody typed those. An ask
-repeated across both tools counts as one cluster. Cursor history is not read yet: it lives
-in an undocumented SQLite store.
+transcripts), Codex (`~/.codex/sessions/`, or `$CODEX_HOME`) and Cursor (its
+`state.vscdb` SQLite store) by default, and skips subagent turns and scripted runs such as
+`codex exec`, because nobody typed those. An ask repeated across tools counts as one
+cluster. Cursor chats opened without a folder belong to no project, so they are not read.
 
 Write the output to a scratch location, not into the repo, because prompts can contain
 names, emails and tokens.

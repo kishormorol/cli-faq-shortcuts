@@ -107,95 +107,65 @@ class ExtractAsks(unittest.TestCase):
         )
         self.assertEqual(self.run_script("--source", "codex"), [["2026-09-02", "codex", ASK]])
 
-    def test_cursor_history(self):
+    def cursor_db(self, conversations):
+        """A fake Cursor state.vscdb: {composer data: [bubbles]}, keyed in insertion order."""
         if sys.platform == "darwin":
-            db = (
-                self.home
-                / "Library"
-                / "Application Support"
-                / "Cursor"
-                / "User"
-                / "globalStorage"
-                / "state.vscdb"
-            )
-        elif WINDOWS:
-            db = (
-                self.home
-                / "AppData"
-                / "Roaming"
-                / "Cursor"
-                / "User"
-                / "globalStorage"
-                / "state.vscdb"
-            )
+            base = self.home / "Library" / "Application Support"
         else:
-            db = (
-                self.home
-                / ".config"
-                / "Cursor"
-                / "User"
-                / "globalStorage"
-                / "state.vscdb"
-            )
-
+            base = self.home / ("AppData/Roaming" if WINDOWS else ".config")
+            self.env["APPDATA" if WINDOWS else "XDG_CONFIG_HOME"] = str(base)
+        db = base / "Cursor" / "User" / "globalStorage" / "state.vscdb"
         db.parent.mkdir(parents=True, exist_ok=True)
-
         conn = sqlite3.connect(db)
-
-        conn.execute(
-            "CREATE TABLE cursorDiskKV (key TEXT PRIMARY KEY, value TEXT)"
-        )
-
-        composer_id = "composer-1"
-
-        conn.execute(
-            "INSERT INTO cursorDiskKV(key, value) VALUES (?, ?)",
-            (
-                f"composerData:{composer_id}",
-                json.dumps(
-                    {
-                        "workspaceIdentifier": {
-                            "uri": {"fsPath": self.project}
-                        }
-                    }
-                ),
-            ),
-        )
-
-        conn.execute(
-            "INSERT INTO cursorDiskKV(key, value) VALUES (?, ?)",
-            (
-                f"bubbleId:{composer_id}:user-1",
-                json.dumps(
-                    {
-                        "type": 1,
-                        "createdAt": "2026-09-03T10:00:00.000Z",
-                        "text": ASK,
-                    }
-                ),
-            ),
-        )
-
-        conn.execute(
-            "INSERT INTO cursorDiskKV(key, value) VALUES (?, ?)",
-            (
-                f"bubbleId:{composer_id}:assistant-1",
-                json.dumps(
-                    {
-                        "type": 2,
-                        "createdAt": "2026-09-03T10:01:00.000Z",
-                        "text": "assistant response",
-                    }
-                ),
-            ),
-        )
-
+        conn.execute("CREATE TABLE cursorDiskKV (key TEXT PRIMARY KEY, value BLOB)")
+        for i, (composer, bubbles) in enumerate(conversations):
+            conn.execute(
+                "INSERT INTO cursorDiskKV VALUES (?, ?)", (f"composerData:c{i}", json.dumps(composer))
+            )
+            for j, bubble in enumerate(bubbles):
+                conn.execute(
+                    "INSERT INTO cursorDiskKV VALUES (?, ?)",
+                    (f"bubbleId:c{i}:b{j}", json.dumps(bubble, ensure_ascii=False)),
+                )
         conn.commit()
         conn.close()
 
+    def test_cursor_history(self):
+        workspace = {"workspaceIdentifier": {"uri": {"fsPath": spelled_differently(self.project)}}}
+        self.cursor_db(
+            [
+                (
+                    workspace,
+                    [
+                        {"type": 1, "createdAt": "2026-09-03T10:00:00.000Z", "text": ASK},
+                        {"type": 2, "createdAt": "2026-09-03T10:01:00.000Z", "text": "reply"},
+                    ],
+                ),
+                (
+                    {"workspaceIdentifier": {"uri": {"fsPath": self.project + "-other"}}},
+                    [{"type": 1, "text": "another project"}],
+                ),
+            ]
+        )
+        self.assertEqual(self.run_script("--source", "cursor"), [["2026-09-03", "cursor", ASK]])
+
+    def test_cursor_epoch_and_repo_fallback(self):
+        # Current Cursor stores epoch milliseconds; older bubbles have no createdAt at all,
+        # and a conversation without a workspace names its folder in trackedGitRepos.
+        self.cursor_db(
+            [
+                (
+                    {"createdAt": 1788000000000, "trackedGitRepos": [{"repoPath": self.project}]},
+                    [
+                        {"type": 1, "createdAt": 1788500000000, "text": "timed"},
+                        {"type": 1, "text": "untimed"},
+                    ],
+                )
+            ]
+        )
         self.assertEqual(
             self.run_script("--source", "cursor"),
-            [["2026-09-03", "cursor", ASK]],
+            [["2026-08-29", "cursor", "untimed"], ["2026-09-04", "cursor", "timed"]],
         )
 
     @unittest.skipUnless(WINDOWS, "Windows path layout")

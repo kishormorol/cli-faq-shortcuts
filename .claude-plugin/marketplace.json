@@ -9,7 +9,7 @@
     {
       "name": "faq-shortcuts",
       "source": "./",
-      "description": "Turns the asks you keep typing into short slash commands, mined from your own Claude Code and Codex history."
+      "description": "Turns the asks you keep typing into short slash commands, mined from your own Claude Code, Codex and Cursor history."
     }
   ]
 }
