@@ -115,6 +115,19 @@ The quick start above is the whole install. It puts the skill where each agent l
 
 **Uninstall:** `rm ~/.claude/skills/faq-shortcuts && rm -rf ~/.agents/skills/faq-shortcuts`
 
+### As a Claude Code plugin
+
+If you only use Claude Code, you can install it as a plugin instead, inside Claude Code:
+
+```
+/plugin marketplace add kishormorol/cli-faq-shortcuts
+/plugin install faq-shortcuts@cli-faq-shortcuts
+```
+
+The command is then `/faq-shortcuts:faq-shortcuts`, or just ask *"what do I keep asking
+in this project?"*. Codex and Cursor don't read Claude Code plugins, so use the quick
+start for those.
+
 ### Windows
 
 In PowerShell, with `git` and Python 3.9+ installed. A directory junction links the skill
