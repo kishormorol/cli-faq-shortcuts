@@ -236,7 +236,8 @@ Everyone whose pull request is merged appears here:
 
 [![Contributors](https://contrib.rocks/image?repo=kishormorol/cli-faq-shortcuts)](https://github.com/kishormorol/cli-faq-shortcuts/graphs/contributors)
 
-Built with help from [Claude Code](https://claude.com/claude-code).
+Built and maintained with help from [Claude Code](https://claude.com/claude-code)
+and [OpenAI Codex](https://openai.com/codex/).
 
 ## Privacy
 
