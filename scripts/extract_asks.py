@@ -37,7 +37,7 @@ import os
 import re
 import sqlite3
 import sys
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 # Codex session sources a person types into. "exec" is a scripted run, and a dict
@@ -59,12 +59,20 @@ def norm_path(path: str) -> str:
     return os.path.normcase(os.path.abspath(path))
 
 
+def as_dict(value):
+    return value if isinstance(value, dict) else {}
+
+
+def as_text(value):
+    return value if isinstance(value, str) else ""
+
+
 def prompt_text(content):
     if isinstance(content, str):
         return content
     if isinstance(content, list):
         return " ".join(
-            part.get("text", "")
+            as_text(part.get("text"))
             for part in content
             if isinstance(part, dict) and part.get("type") in ("text", "input_text")
         )
@@ -85,9 +93,11 @@ def read_jsonl(path):
     with open(path, encoding="utf-8", errors="ignore") as fh:
         for line in fh:
             try:
-                yield json.loads(line)
+                value = json.loads(line)
             except json.JSONDecodeError:
                 continue
+            if isinstance(value, dict):
+                yield value
 
 
 def claude_asks(project_dir):
@@ -102,19 +112,18 @@ def claude_asks(project_dir):
         for turn in read_jsonl(f):
             if turn.get("type") != "user" or turn.get("isMeta") or turn.get("isSidechain"):
                 continue
-            seen.add(turn.get("sessionId"))
-            text = prompt_text(turn.get("message", {}).get("content")).strip()
-            asks.append((turn.get("timestamp", "")[:10], text))
+            seen.add(as_text(turn.get("sessionId")))
+            text = prompt_text(as_dict(turn.get("message")).get("content")).strip()
+            asks.append((cursor_day(turn.get("timestamp")), text))
     project = norm_path(project_dir)
     for entry in read_jsonl(history) if history.is_file() else []:
-        where = entry.get("project")
-        if not where or norm_path(where) != project or entry.get("sessionId") in seen:
+        where = as_text(entry.get("project"))
+        if not where or norm_path(where) != project or as_text(entry.get("sessionId")) in seen:
             continue
-        text = (entry.get("display") or "").strip()
+        text = as_text(entry.get("display")).strip()
         if SLASH_OR_SHELL.match(text) or PASTE_ONLY.match(text):
             continue
-        ts = entry.get("timestamp")
-        day = datetime.fromtimestamp(ts / 1000, timezone.utc).strftime("%Y-%m-%d") if ts else ""
+        day = cursor_day(entry.get("timestamp"))
         asks.append((day, text))
     if not asks and not sessions.is_dir():
         return None, sessions
@@ -130,24 +139,24 @@ def codex_asks(project_dir):
     for f in root.rglob("*.jsonl"):
         turns = read_jsonl(f)
         meta = next(turns, {})
-        info = meta.get("payload") or {}
+        info = as_dict(meta.get("payload"))
         source = info.get("source")
         if (
             meta.get("type") != "session_meta"
-            or not info.get("cwd")
+            or not as_text(info.get("cwd"))
             or norm_path(info["cwd"]) != project
             or not isinstance(source, str)
             or source not in CODEX_INTERACTIVE
-            or info.get("originator") in CODEX_AGENT_ORIGINATORS
+            or as_text(info.get("originator")) in CODEX_AGENT_ORIGINATORS
         ):
             continue
         matched += 1
         for turn in turns:
-            item = turn.get("payload") or {}
+            item = as_dict(turn.get("payload"))
             if turn.get("type") != "response_item" or item.get("role") != "user":
                 continue
             text = prompt_text(item.get("content")).strip()
-            asks.append((turn.get("timestamp", "")[:10], text))
+            asks.append((cursor_day(turn.get("timestamp")), text))
     if not matched:
         return None, f"{root} (no interactive session ran in {project})"
     return asks, root
@@ -185,17 +194,27 @@ def cursor_db_path():
 def cursor_day(ts):
     """A Cursor timestamp as YYYY-MM-DD: epoch milliseconds, or ISO text in older data."""
     if isinstance(ts, (int, float)) and not isinstance(ts, bool):
-        return datetime.fromtimestamp(ts / 1000, timezone.utc).strftime("%Y-%m-%d")
-    return ts[:10] if isinstance(ts, str) else ""
+        try:
+            return datetime.fromtimestamp(ts / 1000, timezone.utc).date().isoformat()
+        except (OverflowError, OSError, ValueError):
+            return ""
+    if isinstance(ts, str):
+        try:
+            return date.fromisoformat(ts[:10]).isoformat()
+        except ValueError:
+            pass
+    return ""
 
 
 def cursor_project(data):
     """The folders a Cursor conversation ran in: its workspace, else its tracked repos."""
-    uri = (data.get("workspaceIdentifier") or {}).get("uri") or {}
-    if uri.get("fsPath"):
+    uri = as_dict(as_dict(data.get("workspaceIdentifier")).get("uri"))
+    if as_text(uri.get("fsPath")):
         return [uri["fsPath"]]
     repos = data.get("trackedGitRepos") or []
-    return [r["repoPath"] for r in repos if isinstance(r, dict) and r.get("repoPath")]
+    if not isinstance(repos, list):
+        return []
+    return [r["repoPath"] for r in repos if isinstance(r, dict) and as_text(r.get("repoPath"))]
 
 
 def cursor_asks(project_dir):
@@ -214,7 +233,7 @@ def cursor_asks(project_dir):
             "SELECT key, value FROM cursorDiskKV WHERE key LIKE 'composerData:%'"
         ):
             try:
-                data = json.loads(value)
+                data = as_dict(json.loads(value))
             except (TypeError, json.JSONDecodeError):
                 continue
             if any(norm_path(p) == project for p in cursor_project(data)):
@@ -227,12 +246,12 @@ def cursor_asks(project_dir):
                 "SELECT value FROM cursorDiskKV WHERE key LIKE ?", (f"bubbleId:{composer_id}:%",)
             ):
                 try:
-                    bubble = json.loads(value)
+                    bubble = as_dict(json.loads(value))
                 except (TypeError, json.JSONDecodeError):
                     continue
                 if bubble.get("type") != 1:
                     continue
-                text = (bubble.get("text") or "").strip()
+                text = as_text(bubble.get("text")).strip()
                 asks.append((cursor_day(bubble.get("createdAt")) or day, text))
     except sqlite3.Error:
         return None, db
@@ -244,13 +263,38 @@ def cursor_asks(project_dir):
 SOURCES = {"claude": claude_asks, "codex": codex_asks, "cursor": cursor_asks}
 
 
+def since_date(value):
+    try:
+        parsed = date.fromisoformat(value)
+        if parsed.isoformat() == value:
+            return value
+    except ValueError:
+        pass
+    raise argparse.ArgumentTypeError("expected a valid date in YYYY-MM-DD format")
+
+
+def positive_int(value):
+    try:
+        number = int(value)
+        if number > 0:
+            return number
+    except ValueError:
+        pass
+    raise argparse.ArgumentTypeError("expected a positive integer")
+
+
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("project_dir", nargs="?", default=os.getcwd())
-    ap.add_argument("--source", choices=["all", *SOURCES], default="all")
-    ap.add_argument("--since", default="")
-    ap.add_argument("--max-len", type=int, default=400)
+    ap = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
+    ap.add_argument("project_dir", nargs="?", default=os.getcwd(), help="project folder (default: current directory)")
+    ap.add_argument("--source", choices=["all", *SOURCES], default="all", help="history source (default: all)")
+    ap.add_argument("--since", type=since_date, help="include prompts on or after YYYY-MM-DD (UTC)")
+    ap.add_argument("--max-len", type=positive_int, default=400, help="maximum prompt length in characters (default: 400)")
+    ap.add_argument("--format", choices=["tsv", "jsonl"], default="tsv", help="output format (default: tsv)")
     args = ap.parse_args()
+    args.since = args.since or ""
+    args.project_dir = os.path.abspath(os.path.expanduser(args.project_dir))
+    if not Path(args.project_dir).is_dir():
+        ap.error("project_dir must be an existing directory")
     if sys.platform == "win32":
         # A pipe on Windows defaults to the ANSI code page, which can't print most prompts.
         sys.stdout.reconfigure(encoding="utf-8")
@@ -259,7 +303,11 @@ def main():
     names = list(SOURCES) if args.source == "all" else [args.source]
     rows, missing = [], []
     for name in names:
-        asks, where = SOURCES[name](args.project_dir)
+        try:
+            asks, where = SOURCES[name](args.project_dir)
+        except OSError as exc:
+            missing.append(f"{name}: could not read session history ({exc.strerror or type(exc).__name__})")
+            continue
         if asks is None:
             missing.append(f"{name}: no session history at {where}")
             continue
@@ -278,7 +326,10 @@ def main():
 
     rows.sort()
     for day, name, text in rows:
-        print(f"{day}\t{name}\t{text}")
+        if args.format == "jsonl":
+            print(json.dumps({"date": day, "source": name, "prompt": text}, ensure_ascii=False))
+        else:
+            print(f"{day}\t{name}\t{text}")
 
 
 if __name__ == "__main__":
