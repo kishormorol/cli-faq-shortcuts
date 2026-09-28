@@ -14,7 +14,12 @@ It works in Claude Code, Codex and Cursor.
 The extractor uses only Python's standard library: no packages, API keys, or network
 access are needed. Intent grouping happens in your coding agent.
 
-![Animated sample session: /faq-shortcuts reads 248 Claude Code and 63 Codex prompts from a sample project, lists the four most repeated asks with how often each was typed, and writes the three picked as shortcuts](demo.svg)
+![24-second walkthrough: repeated requests become a proposed /sent shortcut, which the user chooses and then uses to check newsletter delivery. All prompts, counts, and output are synthetic.](docs/media/faq-shortcuts-demo.gif)
+
+[Watch or download the 24-second video](https://github.com/kishormorol/cli-faq-shortcuts/releases/download/v1.2.0/faq-shortcuts-demo.mp4)
+· [What's new in v1.2.0](https://github.com/kishormorol/cli-faq-shortcuts/releases/tag/v1.2.0)
+
+The demo illustrates the workflow with synthetic data; it is not a live agent recording.
 
 ## Quick start
 
