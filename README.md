@@ -94,9 +94,10 @@ Sent / delivered / bounced counts, then the bounced addresses. Then ask.
 ```
 
 The shortcuts point at the scripts and queries **your** project already uses, and they
-record the mistakes already made on that path. So a shortcut is shorter to type and safer
-to run. Anything that writes or sends does a dry run first and waits for your yes, so a
-typo stops at the preview.
+record the mistakes already made on that path. `/sent` checks the send record, not the
+earlier message where the agent said it sent it. So a shortcut is shorter to type, and it
+verifies the outcome instead of trusting a previous claim. Anything that writes or sends
+does a dry run first and waits for your yes, so a typo stops at the preview.
 
 ## How it works
 
