@@ -168,6 +168,40 @@ class ExtractAsks(unittest.TestCase):
             [["2026-08-29", "cursor", "untimed"], ["2026-09-04", "cursor", "timed"]],
         )
 
+    def test_symlinked_project(self):
+        """Tools record the resolved folder; a symlink to it must still find the history."""
+        real = os.path.realpath(self.project)
+        link = os.path.join(os.path.dirname(real), "link")
+        try:
+            os.symlink(real, link, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            self.skipTest("symlinks need extra privileges here")
+        write_jsonl(
+            self.home / ".claude" / "projects" / slug(real) / "s1.jsonl",
+            [{"type": "user", "sessionId": "s1", "timestamp": "2026-09-01T10:00:00Z",
+              "message": {"content": "from transcript"}}],
+        )
+        write_jsonl(
+            self.home / ".claude" / "history.jsonl",
+            [{"display": "from history", "project": real, "sessionId": "old",
+              "timestamp": 1756720800000}],
+        )
+        write_jsonl(
+            self.home / ".codex" / "sessions" / "2026" / "09" / "02" / "r.jsonl",
+            [
+                {"type": "session_meta", "payload": {"cwd": real, "source": "cli"}},
+                {"type": "response_item", "timestamp": "2026-09-02T09:00:00Z",
+                 "payload": {"role": "user", "content": [{"type": "input_text",
+                                                          "text": "from codex"}]}},
+            ],
+        )
+        self.project = link
+        self.assertEqual(
+            sorted(row[2] for row in self.run_script("--source", "claude")),
+            ["from history", "from transcript"],
+        )
+        self.assertEqual(self.run_script("--source", "codex"), [["2026-09-02", "codex", "from codex"]])
+
     @unittest.skipUnless(WINDOWS, "Windows path layout")
     def test_windows_slug(self):
         self.assertEqual(slug("C:\\Users\\me\\proj"), "C--Users-me-proj")
