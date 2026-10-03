@@ -59,6 +59,12 @@ def norm_path(path: str) -> str:
     return os.path.normcase(os.path.abspath(path))
 
 
+def spellings(project_dir):
+    """The folder as given and with symlinks resolved. A tool records whichever path its
+    working directory had, usually the resolved one, so a symlink must match either."""
+    return list(dict.fromkeys([project_dir, os.path.realpath(project_dir)]))
+
+
 def as_dict(value):
     return value if isinstance(value, dict) else {}
 
@@ -102,12 +108,14 @@ def read_jsonl(path):
 
 def claude_asks(project_dir):
     home = Path.home() / ".claude"
-    sessions = home / "projects" / slug(project_dir)
+    folders = [home / "projects" / slug(p) for p in spellings(project_dir)]
+    found = [d for d in folders if d.is_dir()]
+    sessions = found[0] if found else folders[-1]
     history = home / "history.jsonl"
-    if not sessions.is_dir() and not history.is_file():
+    if not found and not history.is_file():
         return None, sessions
     asks, seen = [], set()
-    for f in sessions.glob("*.jsonl") if sessions.is_dir() else []:
+    for f in (f for d in found for f in d.glob("*.jsonl")):
         seen.add(f.stem)
         for turn in read_jsonl(f):
             if turn.get("type") != "user" or turn.get("isMeta") or turn.get("isSidechain"):
@@ -115,26 +123,26 @@ def claude_asks(project_dir):
             seen.add(as_text(turn.get("sessionId")))
             text = prompt_text(as_dict(turn.get("message")).get("content")).strip()
             asks.append((cursor_day(turn.get("timestamp")), text))
-    project = norm_path(project_dir)
+    projects = {norm_path(p) for p in spellings(project_dir)}
     for entry in read_jsonl(history) if history.is_file() else []:
         where = as_text(entry.get("project"))
-        if not where or norm_path(where) != project or as_text(entry.get("sessionId")) in seen:
+        if not where or norm_path(where) not in projects or as_text(entry.get("sessionId")) in seen:
             continue
         text = as_text(entry.get("display")).strip()
         if SLASH_OR_SHELL.match(text) or PASTE_ONLY.match(text):
             continue
         day = cursor_day(entry.get("timestamp"))
         asks.append((day, text))
-    if not asks and not sessions.is_dir():
+    if not asks and not found:
         return None, sessions
-    return asks, f"{sessions} + {history}"
+    return asks, f"{' + '.join(map(str, found or [sessions]))} + {history}"
 
 
 def codex_asks(project_dir):
     root = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")) / "sessions"
     if not root.is_dir():
         return None, root
-    project = norm_path(project_dir)
+    projects = {norm_path(p) for p in spellings(project_dir)}
     asks, matched = [], 0
     for f in root.rglob("*.jsonl"):
         turns = read_jsonl(f)
@@ -144,7 +152,7 @@ def codex_asks(project_dir):
         if (
             meta.get("type") != "session_meta"
             or not as_text(info.get("cwd"))
-            or norm_path(info["cwd"]) != project
+            or norm_path(info["cwd"]) not in projects
             or not isinstance(source, str)
             or source not in CODEX_INTERACTIVE
             or as_text(info.get("originator")) in CODEX_AGENT_ORIGINATORS
@@ -158,7 +166,7 @@ def codex_asks(project_dir):
             text = prompt_text(item.get("content")).strip()
             asks.append((cursor_day(turn.get("timestamp")), text))
     if not matched:
-        return None, f"{root} (no interactive session ran in {project})"
+        return None, f"{root} (no interactive session ran in {project_dir})"
     return asks, root
 
 
@@ -221,7 +229,7 @@ def cursor_asks(project_dir):
     db = cursor_db_path()
     if not db.is_file():
         return None, db
-    project = norm_path(project_dir)
+    projects = {norm_path(p) for p in spellings(project_dir)}
     try:
         # Read-only, so a running Cursor holding the database is no obstacle.
         conn = sqlite3.connect(f"{db.as_uri()}?mode=ro", uri=True)
@@ -236,7 +244,7 @@ def cursor_asks(project_dir):
                 data = as_dict(json.loads(value))
             except (TypeError, json.JSONDecodeError):
                 continue
-            if any(norm_path(p) == project for p in cursor_project(data)):
+            if any(norm_path(p) in projects for p in cursor_project(data)):
                 started[key.split(":", 1)[1]] = cursor_day(data.get("createdAt"))
         if not started:
             return None, f"{db} (no conversation ran in {project_dir})"
