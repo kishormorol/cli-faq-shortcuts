@@ -1,0 +1,17 @@
+name: Feature request
+description: Suggest an improvement to extraction or the shortcut workflow.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the workflow using invented examples, without private history.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Include alternatives or workarounds you have considered.
+    validations:
+      required: true

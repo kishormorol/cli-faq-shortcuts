@@ -2,6 +2,7 @@
 
 [![License](https://img.shields.io/github/license/kishormorol/cli-faq-shortcuts?style=flat)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/kishormorol/cli-faq-shortcuts?style=flat)](https://github.com/kishormorol/cli-faq-shortcuts/releases)
+[![Tests](https://github.com/kishormorol/cli-faq-shortcuts/actions/workflows/test.yml/badge.svg)](https://github.com/kishormorol/cli-faq-shortcuts/actions/workflows/test.yml)
 [![Works with](https://img.shields.io/badge/works%20with-Claude%20Code%20·%20Codex%20·%20Cursor-7c3aed?style=flat)](#install)
 [![Stars](https://img.shields.io/github/stars/kishormorol/cli-faq-shortcuts?style=flat)](https://github.com/kishormorol/cli-faq-shortcuts/stargazers)
 
@@ -10,7 +11,15 @@
 repeating, and turns each one into a short command, like `/sent` or `/project billing`.
 It works in Claude Code, Codex and Cursor.
 
-![Animated sample session: /faq-shortcuts reads 248 Claude Code and 63 Codex prompts from a sample project, lists the four most repeated asks with how often each was typed, and writes the three picked as shortcuts](demo.svg)
+The extractor uses only Python's standard library: no packages, API keys, or network
+access are needed. Intent grouping happens in your coding agent.
+
+![24-second walkthrough: repeated requests become a proposed /sent shortcut, which the user chooses and then uses to check newsletter delivery. All prompts, counts, and output are synthetic.](docs/media/faq-shortcuts-demo.gif)
+
+[Watch or download the 24-second video](https://github.com/kishormorol/cli-faq-shortcuts/releases/download/v1.2.0/faq-shortcuts-demo.mp4)
+· [What's new in v1.2.0](https://github.com/kishormorol/cli-faq-shortcuts/releases/tag/v1.2.0)
+
+The demo illustrates the workflow with synthetic data; it is not a live agent recording.
 
 ## Quick start
 
@@ -42,9 +51,10 @@ ones you want and they become shortcuts in that project.
 
 # the extractor on its own: no agent, nothing leaves your machine
 E=~/.agents/skills/faq-shortcuts/scripts/extract_asks.py
-python3 $E .                          # every prompt you typed here, oldest first
-python3 $E . --since 2026-09-01 | wc -l                  # how many since September
-python3 $E . | awk -F'\t' 'split($3,w," ")>=4 {print tolower($3)}' \
+python3 "$E" .                       # matching prompts, oldest first
+python3 "$E" . --since 2026-09-01 | wc -l               # how many since September
+python3 "$E" . --format jsonl         # structured records for your own scripts
+python3 "$E" . | awk -F'\t' 'split($3,w," ")>=4 {print tolower($3)}' \
   | sort | uniq -c | sort -rn | head                     # your most repeated exact requests
 ```
 
@@ -84,9 +94,10 @@ Sent / delivered / bounced counts, then the bounced addresses. Then ask.
 ```
 
 The shortcuts point at the scripts and queries **your** project already uses, and they
-record the mistakes already made on that path. So a shortcut is shorter to type and safer
-to run. Anything that writes or sends does a dry run first and waits for your yes, so a
-typo stops at the preview.
+record the mistakes already made on that path. `/sent` checks the send record, not the
+earlier message where the agent said it sent it. So a shortcut is shorter to type, and it
+verifies the outcome instead of trusting a previous claim. Anything that writes or sends
+does a dry run first and waits for your yes, so a typo stops at the preview.
 
 ## How it works
 
@@ -111,7 +122,7 @@ The quick start above is the whole install. It puts the skill where each agent l
 | Claude Code | `~/.claude/skills/` (the link) |
 | Cursor | both |
 
-**Update:** `git -C ~/.agents/skills/faq-shortcuts pull`
+**Update:** `git -C ~/.agents/skills/faq-shortcuts pull --ff-only`, then start a new agent session.
 
 **Uninstall:** `rm ~/.claude/skills/faq-shortcuts && rm -rf ~/.agents/skills/faq-shortcuts`
 
@@ -145,7 +156,7 @@ Run the extractor with `python` (or `py`), not `python3`:
 python "$env:USERPROFILE\.agents\skills\faq-shortcuts\scripts\extract_asks.py" . | Select-Object -First 10
 ```
 
-**Update:** `git -C "$env:USERPROFILE\.agents\skills\faq-shortcuts" pull`
+**Update:** `git -C "$env:USERPROFILE\.agents\skills\faq-shortcuts" pull --ff-only`, then start a new agent session.
 
 **Uninstall:** remove the junction with `rmdir`, which leaves its target alone, then the clone:
 
@@ -171,6 +182,38 @@ python3 ~/.agents/skills/faq-shortcuts/scripts/extract_asks.py ~/my-project | he
 This prints `date<TAB>source<TAB>prompt`. Add `--source claude`, `--source codex`, or `--source cursor`
 to read one tool only, and `--since 2026-01-01` to skip older prompts.
 
+### Extractor reference
+
+```text
+python scripts/extract_asks.py [project_dir] [--source all|claude|codex|cursor]
+                              [--since YYYY-MM-DD] [--max-len N] [--format tsv|jsonl]
+```
+
+| Option | Default | Behavior |
+|---|---|---|
+| `project_dir` | Current directory | Match the exact project folder recorded in history. |
+| `--source` | `all` | Read one supported tool or all three. |
+| `--since` | No cutoff | Include the given UTC date and later; exclude prompts with unknown dates. |
+| `--max-len` | `400` | Skip prompts longer than this positive character limit, before whitespace cleanup. |
+| `--format` | `tsv` | Emit tab-separated lines or one JSON object per line. |
+
+JSONL records have `date`, `source`, and `prompt` fields. Both formats collapse prompt
+whitespace to single spaces. Dates are `YYYY-MM-DD`, or an empty string when unavailable;
+undated records sort first. Counts and diagnostics go to stderr, keeping stdout usable
+in a pipeline. Exit codes: `0` when a source is available (even if filters match nothing),
+`1` when no source is available, and `2` for invalid arguments.
+
+### Limits
+
+- This is a view of the history still stored on your machine, not a complete activity log.
+- Prompts longer than 400 characters, injected context, and non-interactive runs are
+  filtered out. Increase `--max-len` if your usual requests are longer.
+- Projects are matched by folder, without recursively including child folders or other
+  worktrees. Moving a project does not move the paths recorded in old history.
+- Cursor's storage format is undocumented and can change. Chats without a recorded
+  workspace or repository cannot be attributed to a project.
+- Malformed records are skipped. An invalid timestamp becomes an unknown date.
+
 ## Troubleshooting
 
 | You see | Do this |
@@ -179,25 +222,39 @@ to read one tool only, and `--since 2026-01-01` to skip older prompts.
 | `no session history at …` | Run it from the project folder you actually worked in. History is stored per folder, so a subfolder counts as a different project. |
 | Very few prompts found | History is read only for the project folder you actually worked in. Cursor chats opened without a folder aren't tied to any project, so they're skipped. |
 | `fatal: destination path … already exists` | It's already installed. Run the update command instead. |
+| No output after `--since` | Check the date and project folder. No matching prompts is a successful empty result; try without the date filter. |
+| `could not read session history` | Check file permissions and try `--source` with another tool. Available sources can still produce results. |
+| Requests you remember are missing | Try `--max-len 2000`; long prompts are filtered by default. |
 
 ## Contributing
 
-Issues and pull requests are welcome. Good first contributions:
+Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for local
+checks and guidance on creating a safe reproduction. Good first contributions:
 
-- **[Windows support](https://github.com/kishormorol/cli-faq-shortcuts/issues/1)** without WSL: the install relies on symlinks.
-- **A bug report** with the extractor command you ran and what it printed.
+- **History compatibility fixes** backed by small synthetic fixtures.
+- **Install and troubleshooting improvements** for the tools and platforms you use.
+- **A bug report** with your OS, Python version, command, and sanitized error message.
+
+Windows installation and extraction are supported and covered by CI, alongside Linux
+and macOS. See the [changelog](CHANGELOG.md) for unreleased improvements.
 
 Everyone whose pull request is merged appears here:
 
 [![Contributors](https://contrib.rocks/image?repo=kishormorol/cli-faq-shortcuts)](https://github.com/kishormorol/cli-faq-shortcuts/graphs/contributors)
 
-Built with help from [Claude Code](https://claude.com/claude-code).
+Built and maintained with help from [Claude Code](https://claude.com/claude-code)
+and [OpenAI Codex](https://openai.com/codex/).
 
 ## Privacy
 
 The extractor only reads local files and makes no network calls. Your prompts can contain
 names, emails and tokens, so the skill writes the list to a scratch folder, never into
 your repo. Your agent then reads that list the same way it reads any file you show it.
+
+That agent may send the prompts to its configured model provider. Review your agent's
+settings before using sensitive history. Do not attach raw history, extractor output,
+or Cursor databases to public issues. Use invented prompts in bug reproductions and
+review generated shortcuts before committing them.
 
 ## License
 

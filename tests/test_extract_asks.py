@@ -1,21 +1,25 @@
-"""Run extract_asks.py against fake Claude Code and Codex history in a temp home.
+"""Run extract_asks.py against synthetic Claude Code, Codex and Cursor history.
 
 CI runs this on Linux, macOS and Windows, so each OS's paths, drive letters and
 encodings are exercised: python -m unittest discover tests
 """
 import json
+import io
 import os
 import sqlite3
 import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = ROOT / "scripts" / "extract_asks.py"
 sys.path.insert(0, str(SCRIPT.parent))
 from extract_asks import slug  # noqa: E402
+import extract_asks  # noqa: E402
 
 WINDOWS = sys.platform == "win32"
 # Read or printed as cp1252 (the Windows default), "à" turns into a no-break space that the
@@ -50,6 +54,8 @@ class ExtractAsks(unittest.TestCase):
             HOME=str(self.home),
             USERPROFILE=str(self.home),  # Path.home() on Windows
             CODEX_HOME=str(self.home / ".codex"),
+            APPDATA=str(self.home / "AppData" / "Roaming"),
+            XDG_CONFIG_HOME=str(self.home / ".config"),
         )
         for var in ("PYTHONIOENCODING", "PYTHONUTF8"):  # the script must pick UTF-8 itself
             self.env.pop(var, None)
@@ -167,6 +173,102 @@ class ExtractAsks(unittest.TestCase):
             self.run_script("--source", "cursor"),
             [["2026-08-29", "cursor", "untimed"], ["2026-09-04", "cursor", "timed"]],
         )
+
+    def test_malformed_records_do_not_hide_valid_prompts(self):
+        transcript = self.home / ".claude" / "projects" / slug(self.project) / "s1.jsonl"
+        write_jsonl(transcript, [
+            None, [], "not an object",
+            {"type": "user", "message": None, "timestamp": None, "sessionId": []},
+            {"type": "user", "message": {"content": [{"type": "text", "text": {}}]}},
+            {"type": "user", "timestamp": "2026-09-01T10:00:00Z", "message": {"content": ASK}},
+        ])
+        with transcript.open("a", encoding="utf-8") as fh:
+            fh.write('{"unfinished":')
+        self.assertEqual(self.run_script("--source", "claude"), [["2026-09-01", "claude", ASK]])
+
+    def test_malformed_codex_payloads(self):
+        root = self.home / ".codex" / "sessions"
+        write_jsonl(root / "bad.jsonl", [{"type": "session_meta", "payload": []}])
+        write_jsonl(root / "good.jsonl", [
+            {"type": "session_meta", "payload": {"cwd": self.project, "source": "vscode"}},
+            {"type": "response_item", "payload": "invalid"},
+            {"type": "response_item", "timestamp": "2026-09-02", "payload": {
+                "role": "user", "content": [{"type": "input_text", "text": ASK}]}},
+        ])
+        self.assertEqual(self.run_script("--source", "codex"), [["2026-09-02", "codex", ASK]])
+
+    def test_cursor_malformed_records_and_timestamps(self):
+        self.cursor_db([
+            (None, []),
+            ({"workspaceIdentifier": "invalid", "trackedGitRepos": 42}, []),
+            ({"createdAt": 10**100, "trackedGitRepos": [{"repoPath": self.project}]}, [
+                None, [], {"type": 1, "text": []},
+                {"type": 1, "createdAt": 10**100, "text": ASK},
+            ]),
+        ])
+        self.assertEqual(self.run_script("--source", "cursor"), [["", "cursor", ASK]])
+        self.assertEqual(self.run_script("--source", "cursor", "--since", "2026-01-01"), [])
+
+    def test_filters_and_history_deduplication(self):
+        write_jsonl(self.home / ".claude" / "projects" / slug(self.project) / "s1.jsonl", [
+            {"type": "user", "timestamp": "2026-09-01", "message": {"content": "older"}},
+            {"type": "user", "timestamp": "2026-09-02", "message": {"content": "keep\tthis\nask"}},
+            {"type": "user", "timestamp": "2026-09-02", "message": {"content": "x" * 401}},
+            {"type": "user", "timestamp": "2026-09-02", "message": {"content": "<system>context"}},
+        ])
+        write_jsonl(self.home / ".claude" / "history.jsonl", [
+            {"project": self.project, "sessionId": "s1", "display": "duplicate"},
+            {"project": self.project, "sessionId": "old", "display": "/help"},
+        ])
+        self.assertEqual(self.run_script("--source", "claude", "--since", "2026-09-02"),
+                         [["2026-09-02", "claude", "keep this ask"]])
+
+    def test_jsonl_output_keeps_unicode_and_metadata(self):
+        write_jsonl(self.home / ".claude" / "history.jsonl", [
+            {"project": self.project, "display": ASK, "timestamp": 1756720800000},
+        ])
+        rows = self.run_script("--source", "claude", "--format", "jsonl")
+        self.assertEqual([json.loads(row[0]) for row in rows],
+                         [{"date": "2025-09-01", "source": "claude", "prompt": ASK}])
+
+    def test_invalid_arguments(self):
+        for args in [("--since", "yesterday"), ("--since", "2026-02-30"),
+                     ("--since", "20260901"), ("--max-len", "0"), ("--max-len", "-1"),
+                     ("--max-len", "many"), ("--format", "xml")]:
+            with self.subTest(args=args):
+                out = subprocess.run([sys.executable, str(SCRIPT), self.project, *args],
+                                     env=self.env, capture_output=True)
+                self.assertEqual(out.returncode, 2)
+                self.assertEqual(out.stdout, b"")
+                self.assertNotIn(b"Traceback", out.stderr)
+
+    def test_missing_project(self):
+        out = subprocess.run([sys.executable, str(SCRIPT), str(self.home / "missing")],
+                             env=self.env, capture_output=True)
+        self.assertEqual(out.returncode, 2)
+        self.assertIn(b"existing directory", out.stderr)
+
+    def test_no_history(self):
+        out = subprocess.run([sys.executable, str(SCRIPT), self.project],
+                             env=self.env, capture_output=True)
+        self.assertEqual(out.returncode, 1)
+        self.assertEqual(out.stdout, b"")
+        self.assertIn(b"no session history", out.stderr)
+        self.assertNotIn(b"Traceback", out.stderr)
+
+    def test_unreadable_source_does_not_block_another_source(self):
+        def unreadable(_):
+            raise PermissionError(13, "Permission denied")
+
+        sources = {"claude": unreadable, "codex": lambda _: ([("2026-09-01", ASK)], "synthetic")}
+        stdout, stderr = io.StringIO(), io.StringIO()
+        with patch.object(extract_asks, "SOURCES", sources), \
+                patch.object(sys, "argv", [str(SCRIPT), self.project]), \
+                patch.object(sys, "platform", "linux"), \
+                redirect_stdout(stdout), redirect_stderr(stderr):
+            extract_asks.main()
+        self.assertEqual(stdout.getvalue(), f"2026-09-01\tcodex\t{ASK}\n")
+        self.assertIn("claude: could not read session history", stderr.getvalue())
 
     def test_symlinked_project(self):
         """Tools record the resolved folder; a symlink to it must still find the history."""
