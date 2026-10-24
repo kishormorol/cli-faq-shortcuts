@@ -278,6 +278,18 @@ class ExtractAsks(unittest.TestCase):
             os.symlink(real, link, target_is_directory=True)
         except (OSError, NotImplementedError):
             self.skipTest("symlinks need extra privileges here")
+        self.check_linked_project(real, link)
+
+    @unittest.skipUnless(WINDOWS, "directory junctions are Windows-only")
+    def test_junctioned_project(self):
+        """Without admin rights Windows links a folder with a junction, not a symlink."""
+        real = os.path.realpath(self.project)
+        link = os.path.join(os.path.dirname(real), "link")
+        subprocess.run(["cmd", "/c", "mklink", "/J", link, real], check=True, capture_output=True)
+        self.addCleanup(os.rmdir, link)  # removes the junction, not its target
+        self.check_linked_project(real, link)
+
+    def check_linked_project(self, real, link):
         write_jsonl(
             self.home / ".claude" / "projects" / slug(real) / "s1.jsonl",
             [{"type": "user", "sessionId": "s1", "timestamp": "2026-09-01T10:00:00Z",
