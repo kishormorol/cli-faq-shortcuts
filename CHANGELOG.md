@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.3.0
+
+### Added
+
+- Secrets pasted into prompts (API keys, tokens, passwords, credentials in URLs, webhooks)
+  are replaced with `[REDACTED]` before printing, since the list goes to a model.
+  `--no-redact` keeps them.
+- `--min-words N` skips short replies such as "ok" and "yes". The skill uses `3`, which on
+  a heavily used project cut 4,607 prompts to 3,367.
+
+### Changed
+
+- The skill calls the extractor by its own folder, so it no longer depends on the agent
+  guessing that `scripts/` is relative to the skill, not the user's project.
+- The skill trims large histories with `--since` or reads them in chunks instead of
+  loading thousands of prompts at once.
+
 ## v1.2.0
 
 ### Added
