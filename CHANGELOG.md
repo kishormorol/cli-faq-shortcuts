@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.3.1
+
+### Changed
+
+- A first run with no history for the folder now says what to do (run it from the folder
+  you worked in, or come back after a few sessions) instead of only listing missing paths.
+- Fewer than 20 prompts prints a note on stderr that there is too little history to show
+  repeats; the skill then proposes at most one or two shortcuts and never invents asks.
+- The Claude Code plugin has a version and an icon, so it can be listed in the plugin directory.
+
 ## v1.3.0
 
 ### Added

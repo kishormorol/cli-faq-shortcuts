@@ -37,7 +37,9 @@ Write the output to a scratch location, not into the repo, because prompts can c
 names and emails. Pasted keys, tokens, passwords and credentials in URLs are already
 replaced with `[REDACTED]`; never use `--no-redact` here.
 
-Check the line count first (`wc -l`). Above about 1,500 lines, don't load it all at once:
+Check the line count first (`wc -l`). Below about 30 lines there is too little history to
+show repeats: say so, propose at most one or two shortcuts from the commit log, and suggest
+running again after more sessions. Never invent asks the history doesn't show. Above about 1,500 lines, don't load it all at once:
 rerun with `--since` set to the last 90 days, or read it in chunks and keep a running tally
 of clusters. Recent asks matter most, because they show what the user still repeats.
 

@@ -290,7 +290,18 @@ class ExtractAsks(unittest.TestCase):
         self.assertEqual(out.returncode, 1)
         self.assertEqual(out.stdout, b"")
         self.assertIn(b"no session history", out.stderr)
+        self.assertIn(b"come back after a few sessions", out.stderr)
         self.assertNotIn(b"Traceback", out.stderr)
+
+    def test_few_prompts_hint_goes_to_stderr_only(self):
+        write_jsonl(self.home / ".claude" / "history.jsonl", [
+            {"project": self.project, "display": "how many signed up", "timestamp": 1756720800000},
+        ])
+        out = subprocess.run([sys.executable, str(SCRIPT), self.project, "--source", "claude"],
+                             env=self.env, capture_output=True)
+        self.assertEqual(out.returncode, 0)
+        self.assertEqual(out.stdout.decode("utf-8").split("\t")[-1].strip(), "how many signed up")
+        self.assertIn(b"Only 1 prompt so far", out.stderr)
 
     def test_unreadable_source_does_not_block_another_source(self):
         def unreadable(_):
