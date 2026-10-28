@@ -319,6 +319,17 @@ def cursor_asks(project_dir):
 
 SOURCES = {"claude": claude_asks, "codex": codex_asks, "cursor": cursor_asks}
 
+# What a first-time user sees when there is nothing, or too little, to find repeats in.
+NO_HISTORY_HINT = (
+    "\nNo agent history for {project} yet. History is stored per folder: run this from the "
+    "folder you opened in Claude Code, Codex or Cursor, or come back after a few sessions there."
+)
+FEW_PROMPTS = 20
+FEW_PROMPTS_HINT = (
+    "Only {count} {noun} so far, which is too few to show what you repeat. Shortcuts come "
+    "from asks typed 5+ times; check the folder, drop --since or --min-words, or come back later."
+)
+
 
 def since_date(value):
     try:
@@ -390,11 +401,14 @@ def main():
         print(f"{kept} prompts from {name} ({where})", file=sys.stderr)
 
     if len(missing) == len(names):
+        missing.append(NO_HISTORY_HINT.format(project=args.project_dir))
         sys.exit("\n".join(missing))
     for note in missing:
         print(note, file=sys.stderr)
     if redacted:
         print(f"{redacted} secrets replaced with [REDACTED] (--no-redact keeps them)", file=sys.stderr)
+    if len(rows) < FEW_PROMPTS:
+        print(FEW_PROMPTS_HINT.format(count=len(rows), noun="prompt" if len(rows) == 1 else "prompts"), file=sys.stderr)
 
     rows.sort()
     for day, name, text in rows:
