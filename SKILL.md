@@ -16,10 +16,14 @@ Build from evidence, not from guesses about what might be useful.
 
 ## 1. Collect the asks
 
+The script sits next to this file, not in the user's project, so call it by the skill's
+own folder (the directory holding this SKILL.md):
+
 ```bash
-python3 scripts/extract_asks.py <project_dir> [--source all|claude|codex|cursor] [--since YYYY-MM-DD] > asks.tsv
+python3 <skill_dir>/scripts/extract_asks.py <project_dir> --min-words 3 [--source all|claude|codex|cursor] [--since YYYY-MM-DD] > <scratch>/asks.tsv
 ```
 
+`--min-words 3` drops "ok", "yes", "push" and other replies that carry no intent.
 On Windows, run it with `python` instead of `python3`. This prints every prompt typed in
 that project's sessions, oldest first, as
 `date<TAB>source<TAB>prompt`. It reads Claude Code (`~/.claude/projects/`, plus
@@ -30,7 +34,12 @@ transcripts), Codex (`~/.codex/sessions/`, or `$CODEX_HOME`) and Cursor (its
 cluster. Cursor chats opened without a folder belong to no project, so they are not read.
 
 Write the output to a scratch location, not into the repo, because prompts can contain
-names, emails and tokens.
+names and emails. Pasted keys, tokens, passwords and credentials in URLs are already
+replaced with `[REDACTED]`; never use `--no-redact` here.
+
+Check the line count first (`wc -l`). Above about 1,500 lines, don't load it all at once:
+rerun with `--since` set to the last 90 days, or read it in chunks and keep a running tally
+of clusters. Recent asks matter most, because they show what the user still repeats.
 
 Also read the commit subjects (`git log --format='%ad %s' --date=short`). Commits show which
 *operations* recur, like repeated `send-*`, `sync-*` and `import-*` scripts. Prompts show how

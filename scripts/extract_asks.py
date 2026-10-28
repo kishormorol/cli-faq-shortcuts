@@ -26,10 +26,16 @@ Prints one typed prompt per line, oldest first, as "YYYY-MM-DD<TAB>source<TAB>pr
 Skipped: tool results, subagent turns (Claude sidechains, Codex subagent threads),
 non-interactive runs (codex exec, and Codex sessions driven by Claude Code, whose
 prompts the agent wrote, not the user), meta turns, injected context and system
-wrappers, and anything longer than --max-len (pasted documents, not asks).
+wrappers, anything longer than --max-len (pasted documents, not asks), and anything
+shorter than --min-words ("ok", "yes" and "push" carry no intent to cluster).
+
+Secrets pasted into a prompt (keys, tokens, passwords, credentials in URLs) are replaced
+with [REDACTED] before printing, because the list is handed to a model. --no-redact keeps
+them.
 
 Usage:
-  extract_asks.py [project_dir] [--source all|claude|codex|cursor] [--since YYYY-MM-DD] [--max-len 400]
+  extract_asks.py [project_dir] [--source all|claude|codex|cursor] [--since YYYY-MM-DD]
+                  [--max-len 400] [--min-words 1] [--format tsv|jsonl] [--no-redact]
 """
 import argparse
 import json
@@ -93,6 +99,49 @@ def is_wrapper(text: str) -> bool:
 # tags that is_wrapper() already drops. A path such as /Users/me/cv.pdf is still an ask.
 SLASH_OR_SHELL = re.compile(r"^(/[A-Za-z0-9:_-]+(\s|$)|!)")
 PASTE_ONLY = re.compile(r"^\[Pasted text #\d+[^\]]*\]$")
+
+
+# Secrets people paste into a prompt: vendor key prefixes, credentials in URLs and
+# webhooks, then a catch-all for bare high-entropy tokens. Ordinary prose never matches.
+SECRETS = [
+    re.compile(p)
+    for p in (
+        r"(?<=://)[^\s:/@]+:[^\s@/]+(?=@)",  # user:password@ in a URL
+        r"\bsk-(?:ant-|proj-)?[A-Za-z0-9_-]{20,}",  # Anthropic, OpenAI
+        r"\b(?:gh[pousr]_|github_pat_)[A-Za-z0-9_]{20,}",  # GitHub
+        r"\bglpat-[A-Za-z0-9_-]{20,}",  # GitLab
+        r"\bxox[abprs]-[A-Za-z0-9-]{10,}",  # Slack
+        r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b",  # AWS access key id
+        r"\bAIza[0-9A-Za-z_-]{35}",  # Google API key
+        r"\bhf_[A-Za-z0-9]{30,}",  # Hugging Face
+        r"\b(?:re|rk|sk|pk)_(?:live_|test_)?(?=[A-Za-z0-9_]*\d)[A-Za-z0-9_]{20,}",  # Resend, Stripe
+        r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}",  # JWT
+        r"(?i)(?<=bearer )[A-Za-z0-9._~+/=-]{16,}",
+        r"(?<=/api/webhooks/)\d+/[A-Za-z0-9_-]+",  # Discord webhook
+        r"(?<=hooks\.slack\.com/services/)[A-Za-z0-9/]+",  # Slack webhook
+        r"\b[MNO][A-Za-z0-9_-]{23,27}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27,}",  # Discord bot
+        r"\bsb_(?:secret|publishable)_[A-Za-z0-9_-]{20,}",  # Supabase
+        r"\bKGAT_[A-Za-z0-9]{20,}",  # Kaggle
+        # Any other bare token: 30+ characters mixing upper, lower and digits, standing alone
+        # (a path, file name or URL has / . or \ in it and is left alone).
+        r"(?<![^\s'\"=:])(?=[A-Za-z0-9_-]*[0-9])(?=[A-Za-z0-9_-]*[a-z])(?=[A-Za-z0-9_-]*[A-Z])"
+        r"[A-Za-z0-9_-]{30,}(?![^\s'\",;])",
+    )
+]
+# A labelled value keeps its label: "password=hunter2" becomes "password=[REDACTED]".
+LABELLED_SECRET = re.compile(
+    r"(?i)\b((?:password|passwd|pwd|secret|token|api[_-]?key)\s*[=:]\s*)[^\s,;\[]+"
+)
+
+
+def redact(text):
+    """The prompt with each pasted secret replaced, and how many were replaced."""
+    count = 0
+    for pattern in SECRETS:
+        text, n = pattern.subn("[REDACTED]", text)
+        count += n
+    text, n = LABELLED_SECRET.subn(r"\1[REDACTED]", text)
+    return text, count + n
 
 
 def read_jsonl(path):
@@ -297,6 +346,8 @@ def main():
     ap.add_argument("--source", choices=["all", *SOURCES], default="all", help="history source (default: all)")
     ap.add_argument("--since", type=since_date, help="include prompts on or after YYYY-MM-DD (UTC)")
     ap.add_argument("--max-len", type=positive_int, default=400, help="maximum prompt length in characters (default: 400)")
+    ap.add_argument("--min-words", type=positive_int, default=1, help="skip prompts with fewer words (default: 1)")
+    ap.add_argument("--no-redact", action="store_true", help="print pasted secrets as typed instead of [REDACTED]")
     ap.add_argument("--format", choices=["tsv", "jsonl"], default="tsv", help="output format (default: tsv)")
     args = ap.parse_args()
     args.since = args.since or ""
@@ -309,7 +360,7 @@ def main():
         sys.stderr.reconfigure(encoding="utf-8")
 
     names = list(SOURCES) if args.source == "all" else [args.source]
-    rows, missing = [], []
+    rows, missing, redacted = [], [], 0
     for name in names:
         try:
             asks, where = SOURCES[name](args.project_dir)
@@ -321,9 +372,20 @@ def main():
             continue
         kept = 0
         for day, text in asks:
-            if not text or is_wrapper(text) or len(text) > args.max_len or day < args.since:
+            words = text.split()
+            if (
+                not text
+                or is_wrapper(text)
+                or len(text) > args.max_len
+                or len(words) < args.min_words
+                or day < args.since
+            ):
                 continue
-            rows.append((day, name, " ".join(text.split())))
+            text = " ".join(words)
+            if not args.no_redact:
+                text, n = redact(text)
+                redacted += n
+            rows.append((day, name, text))
             kept += 1
         print(f"{kept} prompts from {name} ({where})", file=sys.stderr)
 
@@ -331,6 +393,8 @@ def main():
         sys.exit("\n".join(missing))
     for note in missing:
         print(note, file=sys.stderr)
+    if redacted:
+        print(f"{redacted} secrets replaced with [REDACTED] (--no-redact keeps them)", file=sys.stderr)
 
     rows.sort()
     for day, name, text in rows:

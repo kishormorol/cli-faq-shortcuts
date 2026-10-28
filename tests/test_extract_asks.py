@@ -231,10 +231,46 @@ class ExtractAsks(unittest.TestCase):
         self.assertEqual([json.loads(row[0]) for row in rows],
                          [{"date": "2025-09-01", "source": "claude", "prompt": ASK}])
 
+    def test_min_words_drops_acknowledgements(self):
+        write_jsonl(self.home / ".claude" / "history.jsonl", [
+            {"project": self.project, "display": text, "timestamp": 1756720800000}
+            for text in ("ok", "yes do", "commit and push", "how many signed up?")
+        ])
+        self.assertEqual([row[2] for row in self.run_script("--min-words", "3")],
+                         ["commit and push", "how many signed up?"])
+        self.assertEqual(len(self.run_script()), 4)
+
+    def test_secrets_are_redacted(self):
+        # Built from pieces so the fixtures never look like a live secret to a scanner.
+        token = "A1b2C3d4" * 5
+        cases = {
+            "here is the key: re_" + token: "here is the key: [REDACTED]",
+            "use sk-ant-" + token + " for it": "use [REDACTED] for it",
+            "push with ghp_" + token: "push with [REDACTED]",
+            "db is postgresql://app:" + token + "@db.example.com:5432/app":
+                "db is postgresql://[REDACTED]@db.example.com:5432/app",
+            "set password=hunter2 then retry": "set password=[REDACTED] then retry",
+            "post to https://discord.com/api/webhooks/123/" + token:
+                "post to https://discord.com/api/webhooks/[REDACTED]",
+            "the token is " + token: "the token is [REDACTED]",
+            # Not secrets: a document id in a URL, a file name, ordinary words.
+            "read https://docs.google.com/document/d/" + token + "/edit":
+                "read https://docs.google.com/document/d/" + token + "/edit",
+            "open AMS598_03b-BagsOfLittleBootstrapNotes.pdf":
+                "open AMS598_03b-BagsOfLittleBootstrapNotes.pdf",
+            "preprocessing_function_name_is_long": "preprocessing_function_name_is_long",
+        }
+        write_jsonl(self.home / ".claude" / "history.jsonl", [
+            {"project": self.project, "display": text, "timestamp": 1756720800000}
+            for text in cases
+        ])
+        self.assertEqual(sorted(row[2] for row in self.run_script()), sorted(cases.values()))
+        self.assertEqual(sorted(row[2] for row in self.run_script("--no-redact")), sorted(cases))
+
     def test_invalid_arguments(self):
         for args in [("--since", "yesterday"), ("--since", "2026-02-30"),
                      ("--since", "20260901"), ("--max-len", "0"), ("--max-len", "-1"),
-                     ("--max-len", "many"), ("--format", "xml")]:
+                     ("--max-len", "many"), ("--format", "xml"), ("--min-words", "0")]:
             with self.subTest(args=args):
                 out = subprocess.run([sys.executable, str(SCRIPT), self.project, *args],
                                      env=self.env, capture_output=True)
