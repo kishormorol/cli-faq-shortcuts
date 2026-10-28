@@ -2,8 +2,8 @@
 
 ## Assets
 
-- `media/faq-shortcuts-demo.gif`: looping 24-second README walkthrough.
-- `media/faq-shortcuts-demo.png`: static preview.
+- [Looping GIF](https://raw.githubusercontent.com/kishormorol/cli-faq-shortcuts/v1.2.0/docs/media/faq-shortcuts-demo.gif): 24-second README walkthrough.
+- [Static preview](https://raw.githubusercontent.com/kishormorol/cli-faq-shortcuts/v1.2.0/docs/media/faq-shortcuts-demo.png).
 - [MP4 download](https://github.com/kishormorol/cli-faq-shortcuts/releases/download/v1.2.0/faq-shortcuts-demo.mp4): 1280 x 720, 24 seconds, silent with on-screen text.
 
 All prompts, counts, and results in the demo are invented. It illustrates the agent

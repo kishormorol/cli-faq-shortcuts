@@ -18,7 +18,7 @@ It works in Claude Code, Codex and Cursor.
 - **Nothing to install but the skill.** The extractor is standard-library Python: no
   packages, API keys, or network calls. Intent grouping happens in your coding agent.
 
-![24-second walkthrough: repeated requests become a proposed /sent shortcut, which the user chooses and then uses to check newsletter delivery. All prompts, counts, and output are synthetic.](docs/media/faq-shortcuts-demo.gif)
+![24-second walkthrough: repeated requests become a proposed /sent shortcut, which the user chooses and then uses to check newsletter delivery. All prompts, counts, and output are synthetic.](https://raw.githubusercontent.com/kishormorol/cli-faq-shortcuts/v1.2.0/docs/media/faq-shortcuts-demo.gif)
 
 [Watch or download the 24-second video](https://github.com/kishormorol/cli-faq-shortcuts/releases/download/v1.2.0/faq-shortcuts-demo.mp4)
 · [What's new in v1.3.0](https://github.com/kishormorol/cli-faq-shortcuts/releases/tag/v1.3.0)
