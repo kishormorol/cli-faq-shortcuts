@@ -1,6 +1,7 @@
 {
   "name": "faq-shortcuts",
   "version": "1.3.1",
+  "displayName": "FAQ Shortcuts",
   "description": "Turns the asks you keep typing into short slash commands, mined from your own Claude Code, Codex and Cursor history.",
   "author": {
     "name": "Md. Kishor Morol",
@@ -8,6 +9,9 @@
   },
   "homepage": "https://github.com/kishormorol/cli-faq-shortcuts",
   "repository": "https://github.com/kishormorol/cli-faq-shortcuts",
+  "documentationUrl": "https://github.com/kishormorol/cli-faq-shortcuts#readme",
+  "supportUrl": "https://github.com/kishormorol/cli-faq-shortcuts/issues",
+  "privacyPolicyUrl": "https://github.com/kishormorol/cli-faq-shortcuts#privacy",
   "license": "Apache-2.0",
   "keywords": [
     "skills",
