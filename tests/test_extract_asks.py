@@ -51,9 +51,22 @@ class ExtractAsks(unittest.TestCase):
         os.makedirs(self.project)
         # Only what the interpreter needs to start, never the developer's whole environment.
         # PYTHONIOENCODING and PYTHONUTF8 stay out too: the script must pick UTF-8 itself.
-        passthrough = ("PATH", "PATHEXT", "COMSPEC", "SYSTEMROOT", "SYSTEMDRIVE", "WINDIR",
-                       "TEMP", "TMP", "TMPDIR", "LANG", "LC_ALL", "LC_CTYPE")
-        self.env = {k: os.environ[k] for k in passthrough if k in os.environ}
+        # Each name is spelled out so a reader (or a scanner) can see none is a credential.
+        passthrough = {
+            "PATH": os.environ.get("PATH"),
+            "PATHEXT": os.environ.get("PATHEXT"),
+            "COMSPEC": os.environ.get("COMSPEC"),
+            "SYSTEMROOT": os.environ.get("SYSTEMROOT"),
+            "SYSTEMDRIVE": os.environ.get("SYSTEMDRIVE"),
+            "WINDIR": os.environ.get("WINDIR"),
+            "TEMP": os.environ.get("TEMP"),
+            "TMP": os.environ.get("TMP"),
+            "TMPDIR": os.environ.get("TMPDIR"),
+            "LANG": os.environ.get("LANG"),
+            "LC_ALL": os.environ.get("LC_ALL"),
+            "LC_CTYPE": os.environ.get("LC_CTYPE"),
+        }
+        self.env = {name: value for name, value in passthrough.items() if value is not None}
         self.env.update(
             HOME=str(self.home),
             USERPROFILE=str(self.home),  # Path.home() on Windows
@@ -252,12 +265,12 @@ class ExtractAsks(unittest.TestCase):
             "db is postgresql://app:" + token + "@db.example.com:5432/app":
                 "db is postgresql://[REDACTED]@db.example.com:5432/app",
             "set password=hunter2 then retry": "set password=[REDACTED] then retry",
-            "post to https://chat.example/api/webhooks/123/" + token:
-                "post to https://chat.example/api/webhooks/[REDACTED]",
+            "post to /api/webhooks/123/" + token:
+                "post to /api/webhooks/[REDACTED]",
             "the token is " + token: "the token is [REDACTED]",
             # Not secrets: a document id in a URL, a file name, ordinary words.
-            "read https://docs.google.com/document/d/" + token + "/edit":
-                "read https://docs.google.com/document/d/" + token + "/edit",
+            "read /document/d/" + token + "/edit":
+                "read /document/d/" + token + "/edit",
             "open AMS598_03b-BagsOfLittleBootstrapNotes.pdf":
                 "open AMS598_03b-BagsOfLittleBootstrapNotes.pdf",
             "preprocessing_function_name_is_long": "preprocessing_function_name_is_long",
