@@ -226,7 +226,8 @@ in a pipeline. Exit codes: `0` when a source is available (even if filters match
 | You see | Do this |
 |---|---|
 | The agent doesn't know `/faq-shortcuts` | Start a new session. Skills load when a session starts. Check that `ls ~/.claude/skills/faq-shortcuts/SKILL.md` finds the file. |
-| `no session history at …` | Run it from the project folder you actually worked in. History is stored per folder, so a subfolder counts as a different project. |
+| `checked, nothing for this folder (…)` | Run it from the project folder you actually worked in. History is stored per folder, so a subfolder counts as a different project. |
+| Claude Code asks to allow `python3 …extract_asks.py` | Allow it. The script reads your history under `~/.claude` (and Codex, Cursor) and makes no network calls. In headless runs (`claude -p`) nobody can answer that prompt, so pass `--add-dir ~/.claude --allowedTools "Bash(python3:*)"`. |
 | Very few prompts found | History is read only for the project folder you actually worked in. Cursor chats opened without a folder aren't tied to any project, so they're skipped. |
 | `fatal: destination path … already exists` | It's already installed. Run the update command instead. |
 | No output after `--since` | Check the date and project folder. No matching prompts is a successful empty result; try without the date filter. |

@@ -7,6 +7,9 @@
 - The demo GIF and PNG are served from the v1.2.0 tag instead of being shipped in the
   plugin, and `render_demo.py` no longer writes into the repository by default.
 - Tests run the extractor with a minimal environment instead of a copy of the developer's.
+- A tool with no history for the folder is reported as `checked, nothing for this folder`,
+  so agents no longer describe it as unsupported. The README explains the one-time
+  permission prompt and how to allow it in headless runs.
 
 ## v1.3.1
 

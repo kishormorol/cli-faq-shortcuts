@@ -33,6 +33,11 @@ transcripts), Codex (`~/.codex/sessions/`, or `$CODEX_HOME`) and Cursor (its
 `codex exec`, because nobody typed those. An ask repeated across tools counts as one
 cluster. Cursor chats opened without a folder belong to no project, so they are not read.
 
+A line like `cursor: checked, nothing for this folder` means that tool was checked and has
+no history here, not that it isn't supported; report it that way. The first run asks the
+user to allow the script to read their history; if that is refused, say so and stop rather
+than guessing from the commit log alone.
+
 Write the output to a scratch location, not into the repo, because prompts can contain
 names and emails. Pasted keys, tokens, passwords and credentials in URLs are already
 replaced with `[REDACTED]`; never use `--no-redact` here.
