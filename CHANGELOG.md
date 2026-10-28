@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- The demo GIF and PNG are served from the v1.2.0 tag instead of being shipped in the
+  plugin, and `render_demo.py` no longer writes into the repository by default.
+- Tests run the extractor with a minimal environment instead of a copy of the developer's.
+
 ## v1.3.1
 
 ### Changed

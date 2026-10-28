@@ -1,6 +1,9 @@
 """Render a 24-second illustrative demo. Optional build deps: Pillow, imageio-ffmpeg.
 
-Usage: python scripts/render_demo.py --output-dir docs/media
+Usage: python scripts/render_demo.py --output-dir <folder>
+
+The media is hosted outside the plugin (the v1.2.0 tag and release assets), so write it
+somewhere outside the repository and upload it from there.
 The extractor itself remains dependency-free. No real history is read.
 """
 import argparse
@@ -100,7 +103,7 @@ def render(t):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--output-dir", type=Path, default=Path("docs/media"))
+    ap.add_argument("--output-dir", type=Path, default=Path("demo-output"))
     args = ap.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
     video = args.output_dir / "faq-shortcuts-demo.mp4"

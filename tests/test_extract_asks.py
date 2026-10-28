@@ -49,16 +49,18 @@ class ExtractAsks(unittest.TestCase):
         self.home = Path(tmp.name) / "home"
         self.project = os.path.abspath(Path(tmp.name) / "my proj")
         os.makedirs(self.project)
-        self.env = dict(
-            os.environ,
+        # Only what the interpreter needs to start, never the developer's whole environment.
+        # PYTHONIOENCODING and PYTHONUTF8 stay out too: the script must pick UTF-8 itself.
+        passthrough = ("PATH", "PATHEXT", "COMSPEC", "SYSTEMROOT", "SYSTEMDRIVE", "WINDIR",
+                       "TEMP", "TMP", "TMPDIR", "LANG", "LC_ALL", "LC_CTYPE")
+        self.env = {k: os.environ[k] for k in passthrough if k in os.environ}
+        self.env.update(
             HOME=str(self.home),
             USERPROFILE=str(self.home),  # Path.home() on Windows
             CODEX_HOME=str(self.home / ".codex"),
             APPDATA=str(self.home / "AppData" / "Roaming"),
             XDG_CONFIG_HOME=str(self.home / ".config"),
         )
-        for var in ("PYTHONIOENCODING", "PYTHONUTF8"):  # the script must pick UTF-8 itself
-            self.env.pop(var, None)
 
     def run_script(self, *args):
         out = subprocess.run(
@@ -250,8 +252,8 @@ class ExtractAsks(unittest.TestCase):
             "db is postgresql://app:" + token + "@db.example.com:5432/app":
                 "db is postgresql://[REDACTED]@db.example.com:5432/app",
             "set password=hunter2 then retry": "set password=[REDACTED] then retry",
-            "post to https://discord.com/api/webhooks/123/" + token:
-                "post to https://discord.com/api/webhooks/[REDACTED]",
+            "post to https://chat.example/api/webhooks/123/" + token:
+                "post to https://chat.example/api/webhooks/[REDACTED]",
             "the token is " + token: "the token is [REDACTED]",
             # Not secrets: a document id in a URL, a file name, ordinary words.
             "read https://docs.google.com/document/d/" + token + "/edit":
