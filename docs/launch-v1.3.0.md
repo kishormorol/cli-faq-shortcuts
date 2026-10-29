@@ -41,8 +41,8 @@ commands. Each shortcut points at the script or query your project already uses 
 records the mistakes already made on that path. Anything that writes or sends does a dry
 run first.
 
-On one of my projects the most repeated exact sentence appeared 4 times, but grouped by
-intent the top ask had been typed 127 times.
+On one of my projects the most repeated exact sentence appeared 14 times, but grouped by
+intent the top ask had been typed 230 times.
 
 When I ran the extractor across my own 42 projects, 49 prompts contained pasted API keys,
 bot tokens or database URLs with passwords. v1.3.0 redacts those before the agent sees
@@ -58,7 +58,7 @@ Post to one subreddit per day, not all at once, and check each one's self-promot
 rules first. Good fits: r/ClaudeAI (pick its project-showcase flair), r/ClaudeCode,
 r/cursor, r/codex.
 
-Title: I found I'd asked my coding agent the same thing 127 times, so I made it a slash command
+Title: I found I'd asked my coding agent the same thing 230 times, so I made it a slash command
 
 Body:
 
@@ -66,8 +66,8 @@ I noticed I was typing the same handful of requests to Claude Code every day, wo
 little differently each time. So I built a skill that reads your local session history
 for a project (Claude Code, Codex and Cursor), groups what you asked by intent, and shows
 you a table of proposed shortcuts, the ask each replaces, and how often you typed it. On
-one of my projects the top ask had been typed 127 times; no single wording appeared more
-than 4.
+one of my projects the top ask had been typed 230 times; no single wording appeared more
+than 14.
 
 You pick which ones to keep, and each becomes a small SKILL.md in the project that points
 at the script you already use, plus the traps you already hit ("delivered to a shared
@@ -85,7 +85,7 @@ Curious what other people's most-repeated ask turns out to be.
 
 I ran my coding-agent history through a script.
 
-One question, typed 127 times in different words. Now it's a slash command.
+One question, typed 230 times in different words. Now it's a slash command.
 
 faq-shortcuts finds your repeated asks in Claude Code, Codex & Cursor and turns them into
 slash commands. v1.3.0 also redacts the API keys you pasted into old prompts.
@@ -94,9 +94,9 @@ https://github.com/kishormorol/cli-faq-shortcuts
 
 ## 5. LinkedIn
 
-I asked my coding agent the same question 127 times without noticing.
+I asked my coding agent the same question 230 times without noticing.
 
-Worded differently every time, so no single sentence repeated more than 4 times. Grouped
+Worded differently every time, so no single sentence repeated more than 14 times. Grouped
 by intent, it was the most common thing I typed in that project.
 
 faq-shortcuts is an open-source Agent Skill that reads your local Claude Code, Codex and
