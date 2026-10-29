@@ -12,7 +12,7 @@ repeating, and turns each one into a short command, like `/sent` or `/project bi
 It works in Claude Code, Codex and Cursor.
 
 - **Built from what you actually typed.** On one real project, a single ask had been
-  typed 127 times in different words. You see the counts and pick which become shortcuts.
+  typed 230 times in different words. You see the counts and pick which become shortcuts.
 - **Secrets stay out.** API keys, tokens, and passwords you pasted into old prompts are
   replaced with `[REDACTED]` before your agent reads the list.
 - **Nothing to install but the skill.** The extractor is standard-library Python: no
@@ -63,8 +63,8 @@ python3 "$E" . | awk -F'\t' 'split($3,w," ")>=4 {print tolower($3)}' \
 ```
 
 The last one counts exact repeats only, and it undercounts. On one real project, the most
-repeated exact request appeared 4 times. Grouped by intent, however it was worded, the top
-ask had been typed **127 times**. That grouping is the agent's job in `/faq-shortcuts`.
+repeated exact request appeared 14 times. Grouped by intent, however it was worded, the top
+ask had been typed **230 times**. That grouping is the agent's job in `/faq-shortcuts`.
 
 ## What you get
 
