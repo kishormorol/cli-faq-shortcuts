@@ -304,7 +304,7 @@ class ExtractAsks(unittest.TestCase):
                              env=self.env, capture_output=True)
         self.assertEqual(out.returncode, 1)
         self.assertEqual(out.stdout, b"")
-        self.assertIn(b"no session history", out.stderr)
+        self.assertIn(b"checked, nothing for this folder", out.stderr)
         self.assertIn(b"come back after a few sessions", out.stderr)
         self.assertNotIn(b"Traceback", out.stderr)
 

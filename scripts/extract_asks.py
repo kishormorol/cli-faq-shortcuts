@@ -215,7 +215,7 @@ def codex_asks(project_dir):
             text = prompt_text(item.get("content")).strip()
             asks.append((cursor_day(turn.get("timestamp")), text))
     if not matched:
-        return None, f"{root} (no interactive session ran in {project_dir})"
+        return None, root
     return asks, root
 
 
@@ -296,7 +296,7 @@ def cursor_asks(project_dir):
             if any(norm_path(p) in projects for p in cursor_project(data)):
                 started[key.split(":", 1)[1]] = cursor_day(data.get("createdAt"))
         if not started:
-            return None, f"{db} (no conversation ran in {project_dir})"
+            return None, db
         asks = []
         for composer_id, day in started.items():
             for (value,) in conn.execute(
@@ -379,7 +379,7 @@ def main():
             missing.append(f"{name}: could not read session history ({exc.strerror or type(exc).__name__})")
             continue
         if asks is None:
-            missing.append(f"{name}: no session history at {where}")
+            missing.append(f"{name}: checked, nothing for this folder ({where})")
             continue
         kept = 0
         for day, text in asks:
